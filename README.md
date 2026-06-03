@@ -1,0 +1,59 @@
+# LNF
+
+> **English** · [Español ↓](#lnf-es)
+
+A service that helps return lost vulnerable persons to their caregivers using QR-tagged clothing. A caregiver registers a protected person in a mobile app and prints durable QR labels. If the person is found, any stranger can scan the QR with a phone camera, open a public web page, and report the location — no app install required. The caregiver is notified through their chosen channels (push, email, SMS, voice call) while the protected person's identity and the caregiver's contact details remain private.
+
+**Status:** Pre-alpha. Requirements drafted; design and implementation not yet started.
+
+**Region:** Launch is LATAM. UI in Spanish (es) and Portuguese (pt-BR). Privacy designed against Brazil's LGPD as the regional baseline.
+
+**For whom:** Families and caregivers of children, people with autism or intellectual disability, and adults with dementia.
+
+## What's in this repo
+
+- [`docs/requirements.en.md`](docs/requirements.en.md) — full product requirements, user roles, functional and non-functional requirements, use cases.
+- [`docs/requirements.es.md`](docs/requirements.es.md) — same document in Spanish.
+- `CLAUDE.md` — guidance for Claude Code agents working in this repo.
+
+Design specs, architecture documents, and code will follow.
+
+## How it works (one paragraph)
+
+Every QR encodes an unguessable URL. Scanning it opens a static-fast public page in the browser asking the finder for a location (GPS or typed) and an optional contact. Submitting the form creates a *find* record on the backend, which fans out to the caregiver via the channels they configured: push first, then email, SMS, and voice call, escalating only until the caregiver acknowledges. The caregiver sees the finder's location and contact (if provided); the finder never sees the caregiver's information.
+
+## Non-goals for v1
+
+Lost-object recovery, in-app chat, WhatsApp delivery, real-time presence, and pre-printed tag fulfillment are deliberately out of scope for the first release. See the requirements docs for the full list.
+
+---
+
+<a id="lnf-es"></a>
+
+# LNF (Español)
+
+> [English ↑](#lnf) · **Español**
+
+Un servicio que ayuda a devolver a sus cuidadores a personas vulnerables extraviadas, utilizando ropa con etiquetas QR. El cuidador registra a la persona protegida en una aplicación móvil e imprime etiquetas QR duraderas. Si la persona es encontrada, cualquier extraño puede escanear el QR con la cámara de su teléfono, abrir una página web pública e informar la ubicación — sin instalar ninguna aplicación. El cuidador es notificado a través de los canales que haya elegido (push, correo electrónico, SMS, llamada de voz), mientras que la identidad de la persona protegida y los datos de contacto del cuidador permanecen privados.
+
+**Estado:** Pre-alfa. Requerimientos redactados; diseño e implementación aún por iniciar.
+
+**Región:** Lanzamiento en LATAM. UI en español (es) y portugués (pt-BR). Privacidad diseñada según la LGPD de Brasil como referencia regional.
+
+**Para quién:** Familias y cuidadores de niños, personas con autismo o discapacidad intelectual y adultos con demencia.
+
+## Contenido de este repositorio
+
+- [`docs/requirements.es.md`](docs/requirements.es.md) — requerimientos del producto, roles de usuario, requerimientos funcionales y no-funcionales, y casos de uso.
+- [`docs/requirements.en.md`](docs/requirements.en.md) — mismo documento en inglés.
+- `CLAUDE.md` — guía para agentes de Claude Code que trabajen en este repositorio.
+
+Los documentos de diseño y arquitectura, así como el código, vendrán a continuación.
+
+## Cómo funciona (en un párrafo)
+
+Cada QR codifica una URL no adivinable. Al escanearlo, se abre en el navegador una página pública de carga rápida que pide al hallador una ubicación (GPS o escrita) y un contacto opcional. Al enviar el formulario, se crea un registro de *hallazgo* en el backend, que distribuye la alerta al cuidador a través de los canales configurados: primero push, luego correo, SMS y llamada de voz, escalando solo hasta que el cuidador acuse recibo. El cuidador ve la ubicación y el contacto del hallador (si fue provisto); el hallador nunca ve la información del cuidador.
+
+## No-objetivos para v1
+
+La recuperación de objetos extraviados, el chat dentro de la aplicación, la entrega por WhatsApp, la presencia en tiempo real y la distribución de etiquetas pre-impresas están deliberadamente fuera del alcance del primer lanzamiento. La lista completa se encuentra en los documentos de requerimientos.
