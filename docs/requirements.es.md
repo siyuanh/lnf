@@ -4,7 +4,7 @@
 
 ## 1. Propósito
 
-LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables extraviadas (niños, personas con autismo o discapacidad intelectual, adultos con demencia). El cuidador registra a la persona protegida en una aplicación móvil e imprime etiquetas QR duraderas que se adhieren a su ropa. Si la persona es encontrada deambulando o desorientada, cualquier extraño puede escanear el QR con la cámara de su teléfono, abrir una página web pública e informar la ubicación. El cuidador es notificado a través de los canales que haya elegido (push, correo electrónico, SMS y llamada de voz), manteniendo en privado la identidad de la persona protegida y los datos de contacto del cuidador.
+LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables extraviadas (niños, personas con autismo o discapacidad intelectual, adultos con demencia). El cuidador registra a la persona protegida en una aplicación móvil e imprime etiquetas QR duraderas que se adhieren a su ropa. Si la persona es encontrada deambulando o desorientada, cualquier extraño puede escanear el QR con la cámara de su teléfono, abrir una página web pública e informar la ubicación. El cuidador es notificado a través de los canales que haya elegido (push, correo electrónico, SMS y llamada de voz), manteniendo en privado la identidad de la persona protegida y los datos de contacto del cuidador. El hallador también puede optar por compartir su ubicación en vivo de forma continua para que el cuidador pueda rastrearlo y llegar hasta él, sin perder el anonimato.
 
 ## 2. Objetivos
 
@@ -60,6 +60,7 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
   - Una dirección o referencia escrita.
 - El hallador PUEDE proporcionar opcionalmente un canal de contacto (teléfono o correo) para que el cuidador pueda comunicarse con él, pero no es obligatorio.
 - Tras el envío, la página DEBE mostrar una confirmación de que el cuidador fue alertado.
+- La página DEBE ofrecer al hallador la opción de compartir su ubicación en vivo de manera continua hasta que el cuidador llegue (ver §5.7).
 
 ### 5.4 Notificación y escalamiento
 
@@ -82,7 +83,19 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - El cuidador DEBE poder marcar un hallazgo como resuelto (persona recuperada) o como falso positivo (por ejemplo, escaneo de prueba o escaneo malicioso).
 - Marcar como falso positivo DEBE rate-limitar temporalmente futuros hallazgos sobre la misma etiqueta provenientes de la misma huella de hallador.
 
-### 5.7 Internacionalización
+### 5.7 Compartición de ubicación en vivo (hallador → cuidador)
+
+- Tras enviar el reporte inicial del hallazgo, al hallador se le DEBE ofrecer en la misma página web una opción de un toque para compartir su ubicación en vivo de manera continua. La opción es opt-in; el hallazgo ya es accionable sin ella.
+- Mientras la compartición esté activa, el navegador DEBE transmitir las coordenadas GPS (con marca de tiempo y precisión) al backend en un intervalo razonable (objetivo: cada 5 a 15 segundos), usando un mecanismo tolerante a la app en segundo plano (por ejemplo, `watchPosition` de la Geolocation API combinado con un Service Worker o POST con `keepalive`, para que un breve cambio de pestaña no corte el flujo).
+- La aplicación del cuidador DEBE renderizar la posición en vivo sobre una vista de mapa (Google Maps embebido o equivalente) con el último pin y un breve trazado de los puntos recientes; las actualizaciones DEBERÍAN aparecer en tiempo casi-real (≤10 s de latencia extremo a extremo).
+- La compartición DEBE detenerse automáticamente cuando ocurra cualquiera de los siguientes eventos: el hallador presiona "Detener", el hallador cierra la página o cierra el navegador, el cuidador marca el hallazgo como Resuelto, o se cumple un tope máximo (por defecto: 60 minutos).
+- El hallador DEBE poder ver, en su propia página, un indicador de que la ubicación se está compartiendo y un control claro para detenerla en cualquier momento.
+- La identidad del hallador permanece privada para el cuidador. El cuidador ve únicamente: el pin en vivo, el trazado, la marca de tiempo de la última actualización y (si el hallador eligió compartirlo previamente) el contacto opcional.
+- El cuidador NO DEBE poder enviar mensajes ni iniciar contacto con el hallador *desde la superficie de seguimiento en vivo*; el modelo de un solo sentido se mantiene (el cuidador puede llamar o enviar correo al hallador usando el contacto opcional de §5.3).
+- Las coordenadas en vivo DEBEN conservarse únicamente lo necesario para el hallazgo activo, más una breve ventana de auditoría (por defecto: 24 horas tras Resuelto o expirado), y luego eliminarse, en línea con §5.5 / LGPD y minimización de datos.
+- Antes del primer envío de GPS, al hallador DEBE mostrársele un aviso de consentimiento claro y en lenguaje sencillo, explicando qué se comparte, con quién, por cuánto tiempo y cómo detenerlo.
+
+### 5.8 Internacionalización
 
 - Toda la UI dirigida al cuidador DEBE estar disponible en español (es) y portugués (pt-BR) al lanzamiento.
 - La página pública del hallador DEBE servirse en el idioma indicado por `Accept-Language`, con español como valor por defecto.
@@ -142,7 +155,19 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 
 **Éxito:** Se realizó el mejor esfuerzo posible a través de cada canal configurado, el cuidador eventualmente se entera del hallazgo y la falla queda auditable.
 
-### CU-5: El cuidador retira una prenda
+### CU-5: El hallador comparte ubicación en vivo mientras espera al cuidador
+
+1. El hallador acaba de enviar el reporte inicial del hallazgo (CU-2).
+2. La página de confirmación ofrece la opción "Compartir mi ubicación en vivo con el cuidador hasta que llegue", con una explicación clara y en lenguaje sencillo.
+3. El hallador presiona la opción y otorga el permiso de GPS del navegador (puede ser un permiso distinto al de CU-2 si el navegador exige re-consentimiento para acceso continuo).
+4. La página comienza a transmitir muestras de GPS al backend; un indicador en la página muestra "Compartiendo ubicación en vivo" junto a un botón Detener.
+5. El cuidador, una vez confirmado el alerta (CU-3), abre el detalle del hallazgo y ve un mapa en vivo con un pin que se mueve en tiempo casi-real, junto con la hora de la última actualización.
+6. El cuidador se desplaza hacia la ubicación. Al llegar (o cuando el hallador se retira), el hallador presiona Detener, o el cuidador marca el hallazgo como Resuelto, o se cumplen los 60 minutos.
+7. La compartición en vivo termina; el trazado se conserva durante la ventana de auditoría (24 h tras Resuelto) y luego se elimina.
+
+**Éxito:** El cuidador pudo seguir la posición del hallador / persona protegida en tiempo real sin ver jamás la identidad del hallador, y el seguimiento terminó limpiamente mediante cualquiera de las cuatro condiciones de detención.
+
+### CU-6: El cuidador retira una prenda
 
 1. El cuidador abre la aplicación y va a las etiquetas de la persona protegida.
 2. El cuidador selecciona la etiqueta de la prenda gastada y presiona Revocar.
@@ -156,3 +181,5 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - UX de acuse-vía-SMS (responder con código vs. tocar un enlace). Se recomienda toque de enlace; manejar respuestas inbound de Twilio agrega complejidad.
 - Tope de gasto diario por defecto por cuenta. Requiere una tabla de precios país por país antes de fijar un valor.
 - Si se debe ofrecer una aplicación web para el cuidador en el lanzamiento o si basta con móvil más una vista web mínima de "gestión de cuenta".
+- Si usar Google Maps Platform para la vista en vivo del cuidador (UX familiar, costo por carga de mapa y por solicitud de direcciones) o una alternativa libre (MapLibre + tiles de OpenStreetMap, algo menos pulida pero sin tarifa por carga). La decisión afecta el modelo de costos.
+- El soporte de los navegadores para geolocalización continua en segundo plano varía (especialmente iOS Safari, que aplica un throttling agresivo cuando la pestaña no está en primer plano). La página debe manejar con elegancia cuando el flujo se cae — definir la UX (por ejemplo, "Toque para reanudar la compartición").

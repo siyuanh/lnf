@@ -4,7 +4,7 @@
 
 ## 1. Purpose
 
-LNF is a service that helps return lost vulnerable persons (children, people with autism or intellectual disability, adults with dementia) to their caregivers. A caregiver registers the protected person in a mobile app and prints durable QR labels onto their clothing. If the person is found wandering or disoriented, any stranger can scan the QR with a phone camera, open a public web page, and report the location. The caregiver is notified through the channels they have chosen (push, email, SMS, and voice call), with the protected person's identity and the caregiver's contact details kept private.
+LNF is a service that helps return lost vulnerable persons (children, people with autism or intellectual disability, adults with dementia) to their caregivers. A caregiver registers the protected person in a mobile app and prints durable QR labels onto their clothing. If the person is found wandering or disoriented, any stranger can scan the QR with a phone camera, open a public web page, and report the location. The caregiver is notified through the channels they have chosen (push, email, SMS, and voice call), with the protected person's identity and the caregiver's contact details kept private. The finder may also opt in to share their live location continuously so the caregiver can track and reach them, while remaining anonymous.
 
 ## 2. Goals
 
@@ -60,6 +60,7 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
   - A typed address / landmark.
 - The finder MAY optionally provide a contact channel (phone or email) so the caregiver can reach them, but it is not required.
 - After submission, the page MUST show a confirmation that the caregiver has been alerted.
+- The page MUST offer the finder the option to share their live location continuously until the caregiver arrives (see §5.8).
 
 ### 5.4 Notification and escalation
 
@@ -82,7 +83,19 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - The caregiver MUST be able to mark a find as resolved (person recovered) or false-positive (e.g., test scan, malicious scan).
 - A false-positive mark MUST temporarily rate-limit further finds against the same tag from the same finder fingerprint.
 
-### 5.7 Internationalization
+### 5.7 Live location sharing (finder → caregiver)
+
+- After submitting the initial find, the finder MUST be offered a one-tap option on the same web page to share their live location continuously. The option is opt-in; the find is already actionable without it.
+- While sharing, the browser MUST stream GPS coordinates (with timestamp and accuracy) to the backend at a reasonable interval (target: every 5–15 seconds), using a background-tolerant mechanism (e.g., the Geolocation API's `watchPosition` plus a Service Worker / `keepalive` POST so brief tab-backgrounding does not drop the stream).
+- The caregiver app MUST render the live position on a map view (Google Maps embed or equivalent) with the latest pin and a brief trail of recent points; updates SHOULD appear in near-real-time (≤10 s end-to-end latency).
+- Sharing MUST stop automatically when any of the following occurs: the finder taps "Stop sharing", the finder closes the page or kills the browser, the caregiver marks the find Resolved, or a hard cap (default: 60 minutes) elapses.
+- The finder MUST be able to see, on their own page, an indicator that location is currently being shared and a clear control to stop it at any time.
+- The finder's identity remains private to the caregiver. The caregiver sees only: the live pin, the trail, the timestamp of last update, and (if the finder chose to share it earlier) the optional contact.
+- The caregiver MUST NOT be able to message or initiate contact with the finder *through the live-tracking surface*; the existing one-way model holds (caregiver may still phone/email the finder using the optional contact provided in §5.3).
+- Live coordinates MUST be retained only as long as needed for the active find plus a short audit window (default: 24 hours after the find is Resolved or expired), then deleted, in keeping with §5.5 / LGPD data minimization.
+- The finder MUST be shown a clear, plain-language consent prompt before the first GPS sample is sent, explaining what is shared, with whom, for how long, and how to stop.
+
+### 5.8 Internationalization
 
 - All caregiver-facing UI MUST be available in Spanish (es) and Portuguese (pt-BR) at launch.
 - The public finder page MUST be served in the language indicated by `Accept-Language`, defaulting to Spanish.
@@ -142,7 +155,19 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 
 **Success:** Best effort was made through every configured channel, the caregiver eventually learns of the find, and the failure is auditable.
 
-### UC-5: The caregiver retires a garment
+### UC-5: The finder shares live location while waiting for the caregiver
+
+1. The finder has just submitted the initial find report (UC-2).
+2. The confirmation page offers "Share my live location with the caregiver until they arrive" with a clear plain-language explanation.
+3. The finder taps the option and grants the browser's GPS permission (a separate prompt from the one in UC-2 if the browser requires re-consent for continuous access).
+4. The page begins streaming GPS samples to the backend; an indicator on the page shows "Sharing live location" with a Stop button.
+5. The caregiver, having acknowledged the alert (UC-3), opens the find detail and sees a live map with a pin moving in near-real-time, plus the time of the last update.
+6. The caregiver navigates to the location. When they arrive (or the finder leaves), the finder taps Stop, or the caregiver marks the find Resolved, or the 60-minute cap elapses.
+7. Live sharing ends; the trail is retained for the audit window (24 h after Resolved) and then deleted.
+
+**Success:** The caregiver could follow the finder/protected person's position in real time without ever seeing the finder's identity, and tracking ended cleanly through any of the four stop conditions.
+
+### UC-6: The caregiver retires a garment
 
 1. The caregiver opens the app, navigates to the protected person's tags.
 2. The caregiver selects the worn-out garment's tag and taps Revoke.
@@ -156,3 +181,5 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - Acknowledgement-via-SMS UX (reply with code vs. tap a link). Recommend link tap; reply-handling adds Twilio inbound complexity.
 - Default daily spend cap per account. Needs a country-by-country pricing table before a number is set.
 - Whether to ship a caregiver-facing web app at launch, or mobile-only with a thin "manage your account" web view.
+- Whether to use Google Maps Platform for the caregiver's live-tracking view (familiar UX, costs per map load + per direction request) or a free alternative (MapLibre + OpenStreetMap tiles, slightly less polished but no per-load fee). Decision affects cost model.
+- Browser support for backgrounded continuous geolocation varies (especially on iOS Safari, which throttles aggressively when the tab is not foreground). The page must handle gracefully when the finder's browser drops the stream — define the UX (e.g., "Tap to resume sharing").
