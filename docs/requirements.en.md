@@ -4,7 +4,7 @@
 
 ## 1. Purpose
 
-LNF is a service that helps return lost vulnerable persons (children, people with autism or intellectual disability, adults with dementia) to their caregivers. A caregiver registers the protected person in a mobile app and prints durable QR labels onto their clothing. If the person is found wandering or disoriented, any stranger can scan the QR with a phone camera, open a public web page, and report the location. The caregiver is notified through the channels they have chosen (push, email, SMS, and voice call), with the protected person's identity and the caregiver's contact details kept private. The finder may also opt in to share their live location continuously so the caregiver can track and reach them, while remaining anonymous.
+LNF is a service that helps return lost vulnerable persons (children, people with autism or intellectual disability, adults with dementia) to their caregivers. Apparel partners manufacture clothing and accessories that carry pre-printed, unique, unguessable QR codes minted by LNF. A caregiver buys such a garment, scans the QR with the LNF mobile app, and activates the tag against a protected person they manage. If the person is later found wandering or disoriented, any stranger can scan the same QR with their phone camera, open a public web page, and report the location. The caregiver is notified through the channels they have chosen (push, email, SMS, and voice call), with the protected person's identity and the caregiver's contact details kept private. The finder may also opt in to share their live location continuously so the caregiver can track and reach them, while remaining anonymous.
 
 ## 2. Goals
 
@@ -20,17 +20,20 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - In-system chat between caregiver and finder.
 - WhatsApp as a notification channel. Likely Phase 2.
 - Real-time "caregiver is on the way" presence signal.
-- Pre-printed physical tag fulfillment (caregivers print their own QRs in v1).
+- LNF-manufactured garments. LNF mints codes and provides a partner platform; physical manufacturing is done by partners.
+- Partner-branded finder pages and partner-customized themes. Phase 2.
+- Self-service partner signup. v1 onboards partners by invitation; the portal supports login but not signup.
 - Multi-region launch. Initial launch is LATAM only.
 
 ## 4. Users and roles
 
 | Role | Description | Authenticated? |
 |---|---|---|
-| **Caregiver** | A guardian, parent, family member, or care professional who registers protected persons and receives alerts. | Yes |
+| **Caregiver** | A guardian, parent, family member, or care professional who activates tags, registers protected persons, and receives alerts. | Yes |
 | **Protected person** | The vulnerable individual whose clothing carries the QR. Not a system user. | n/a |
 | **Finder** | A stranger who scans the QR after encountering the protected person. | No |
-| **Operator** (internal) | Project staff who monitor delivery, abuse, costs. Out of scope for product UI in v1; uses dashboards / DB. | n/a |
+| **Partner** | An apparel brand or retailer that mints batches of QR codes via LNF's API or partner portal and prints them onto its products before sale. | Yes |
+| **Operator** (internal) | LNF staff who monitor delivery, abuse, costs, partner onboarding. Out of scope for product UI in v1; uses dashboards / DB. | n/a |
 
 ## 5. Functional requirements
 
@@ -41,16 +44,31 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - A caregiver MUST be able to manage multiple protected persons under one account.
 - Each protected person MAY have multiple QR tags (multiple garments).
 
-### 5.2 Tag generation and printing
+### 5.2 Tag minting (partner)
 
-- The caregiver generates a unique QR code per garment from inside the app.
-- The QR encodes a URL of the form `https://<domain>/f/<opaque-code>`. The code MUST be unguessable.
-- The app MUST provide a printer-friendly view sized for iron-on or fabric-label printing.
-- The caregiver MUST be able to revoke a tag (e.g., garment discarded). Revoked tags show the finder a generic "this tag is no longer active" page and do not notify anyone.
+- A partner MUST be able to mint a batch of QR codes via either the partner portal (browser UI) or a programmatic API.
+- Each minted code MUST be unguessable (CSPRNG-derived) and unique across the entire system.
+- A minted code is created in the **`unactivated`** state. It exists in our database but is not yet linked to any caregiver or protected person.
+- After minting, the partner MUST receive a downloadable artifact (CSV or equivalent) containing every code in the batch, suitable for ingest into a printing or labeling pipeline.
+- The download artifact MUST be accessible only via a signed, expiring link tied to the requesting partner; the link MUST NOT be guessable.
+- LNF MUST track per-partner totals: codes minted, codes activated, codes revoked, finds reported per code.
+- v1 ships an invite-only partner onboarding model. Self-service partner signup is out of scope.
 
-### 5.3 Finder flow
+### 5.3 Tag activation (caregiver)
 
-- Scanning the QR with any modern phone camera MUST open the finder page directly in the browser. No app install, no login, no captcha by default (rate-limit instead).
+- The QR encodes a URL of the form `https://<domain>/f/<opaque-code>`. Both caregivers and finders scan the same URL; the system decides what to render based on the tag's state and on whether the visitor has the LNF mobile app installed.
+- When a caregiver scans a QR with the LNF mobile app installed, the device's universal link / Android App Link MUST route the URL into the app instead of the browser.
+- When the app receives an `unactivated` code, it MUST guide the authenticated caregiver through activation: choose an existing protected person or create a new one, label the garment (e.g., "blue jacket"), and confirm.
+- When the app receives an `active` code that already belongs to the same caregiver, it MUST display informational details (which protected person, which garment, when activated) and offer revoke / relabel actions. It MUST NOT create a find.
+- When the app receives an `active` code that belongs to a different caregiver, it MUST treat the scan as a finder action and present the finder flow (see §5.4).
+- When a finder without the app scans the QR (browser fallback) and the code is `unactivated`, the page MUST display "This tag is new. Install the LNF app to activate it." with store links. No find is created.
+- When a finder without the app scans the QR and the code is `revoked`, the page MUST display a generic "This tag is no longer active" message and create no find.
+- The caregiver MUST be able to revoke a tag at any time (e.g., garment discarded, sold). Revoked tags follow the rule above.
+- A successful activation MUST emit an audit event and bind the tag's `partner_id` (set at minting) to the now-known `caregiver_id` for partner analytics.
+
+### 5.4 Finder flow
+
+- Scanning the QR with any modern phone camera MUST open the finder page directly in the browser when the LNF app is not installed (or when the scanner is not the tag's caregiver). No app install, no login, no captcha by default (rate-limit instead). When the LNF app is installed, see §5.3 for routing rules.
 - The finder page MUST display:
   - A short, friendly framing in the country's primary language (Spanish or Portuguese), explaining that this person may need help getting home.
   - An optional caregiver-written note (free text, ≤200 chars).
@@ -62,7 +80,7 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - After submission, the page MUST show a confirmation that the caregiver has been alerted.
 - The page MUST offer the finder the option to share their live location continuously until the caregiver arrives (see §5.8).
 
-### 5.4 Notification and escalation
+### 5.5 Notification and escalation
 
 - The caregiver MUST be able to configure, per protected person, which of {push, email, SMS, voice call} are enabled and in what order.
 - All four channels MUST be available at launch.
@@ -70,20 +88,20 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - The acknowledgement action MUST be available from any channel (e.g., a tap on the push, a link in the email, an "ack code" reply to SMS, a keypress during the voice call).
 - If all configured channels fail to elicit acknowledgement within a defined window, the system MUST log the failure and surface it to the caregiver next time they open the app.
 
-### 5.5 Privacy
+### 5.6 Privacy
 
 - The finder MUST NOT see the protected person's name, photo, or medical details by default. (Per-tag opt-in to display extra info is a Phase 2 nice-to-have, not v1.)
 - The finder MUST NOT see the caregiver's contact information at any time.
 - The caregiver, after acknowledging, MUST be shown the find report (location, optional finder contact, timestamp) and MAY choose to contact the finder directly.
 - All personal data MUST be processed in compliance with Brazil's LGPD as the strictest regional baseline; consent flows MUST be explicit and revocable. Data subjects (caregivers) MUST be able to export and delete their data.
 
-### 5.6 Caregiver alert handling
+### 5.7 Caregiver alert handling
 
 - The caregiver MUST be able to view a history of finds per protected person.
 - The caregiver MUST be able to mark a find as resolved (person recovered) or false-positive (e.g., test scan, malicious scan).
 - A false-positive mark MUST temporarily rate-limit further finds against the same tag from the same finder fingerprint.
 
-### 5.7 Live location sharing (finder → caregiver)
+### 5.8 Live location sharing (finder → caregiver)
 
 - After submitting the initial find, the finder MUST be offered a one-tap option on the same web page to share their live location continuously. The option is opt-in; the find is already actionable without it.
 - While sharing, the browser MUST stream GPS coordinates (with timestamp and accuracy) to the backend at a reasonable interval (target: every 5–15 seconds), using a background-tolerant mechanism (e.g., the Geolocation API's `watchPosition` plus a Service Worker / `keepalive` POST so brief tab-backgrounding does not drop the stream).
@@ -95,7 +113,7 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - Live coordinates MUST be retained only as long as needed for the active find plus a short audit window (default: 24 hours after the find is Resolved or expired), then deleted, in keeping with §5.5 / LGPD data minimization.
 - The finder MUST be shown a clear, plain-language consent prompt before the first GPS sample is sent, explaining what is shared, with whom, for how long, and how to stop.
 
-### 5.8 Internationalization
+### 5.9 Internationalization
 
 - All caregiver-facing UI MUST be available in Spanish (es) and Portuguese (pt-BR) at launch.
 - The public finder page MUST be served in the language indicated by `Accept-Language`, defaulting to Spanish.
@@ -111,16 +129,26 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 
 ## 7. Use cases
 
-### UC-1: Caregiver registers a protected person and prints tags
+### UC-0: A partner mints a batch of QR codes
 
-1. Caregiver opens the mobile app for the first time.
-2. App offers to add a protected person without creating an account (anonymous mode).
-3. Caregiver enters: protected person's nickname (private), optional caregiver-written public note (e.g., "I have autism, please call my mother"), preferred notification channels.
-4. App prompts caregiver to create a real account and verify their email / phone before activating SMS or voice channels.
-5. Caregiver generates a QR for the first garment and prints it.
-6. Caregiver attaches the QR (iron-on or sewn label) to the garment.
+1. A partner brand signs in to the partner portal (or calls the LNF API directly).
+2. The partner requests a batch of `N` QR codes for an upcoming product run, optionally labeling the batch (e.g., "AW26 jacket run").
+3. LNF generates `N` unique unguessable codes and creates them in the `unactivated` state, attributed to the partner.
+4. The partner downloads a signed CSV of the codes via a single-use, expiring URL.
+5. The partner imports the CSV into its printing or labeling pipeline; codes are printed onto garments before sale.
 
-**Success:** The protected person now has at least one active garment with a QR linked to a configured caregiver alert chain.
+**Success:** A new batch of `unactivated` codes exists in the system, the partner has the CSV needed to print them, and analytics for that batch start at zero.
+
+### UC-1: Caregiver activates a purchased tag
+
+1. Caregiver buys a garment with a pre-printed QR from a partner.
+2. Caregiver opens the LNF mobile app (creating an account if it is their first time, or signing in if returning) and scans the QR with the in-app camera, or scans with the phone camera; the universal link routes to the LNF app.
+3. The app calls the backend with the code; the backend reports the tag is `unactivated` and belongs to a partner batch.
+4. The app guides the caregiver to either select an existing protected person or add a new one (private nickname, optional public note, preferred notification channels). Email and/or phone are verified before SMS or voice channels are enabled.
+5. The caregiver labels the garment (e.g., "blue jacket") and confirms.
+6. The backend marks the tag `active`, links it to the protected person, and emits an audit event.
+
+**Success:** The tag is now bound to a configured caregiver alert chain. Subsequent scans by strangers will create finds; subsequent scans by the same caregiver will show informational details.
 
 ### UC-2: A stranger finds the protected person and reports a location
 
@@ -183,3 +211,6 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 - Whether to ship a caregiver-facing web app at launch, or mobile-only with a thin "manage your account" web view.
 - Whether to use Google Maps Platform for the caregiver's live-tracking view (familiar UX, costs per map load + per direction request) or a free alternative (MapLibre + OpenStreetMap tiles, slightly less polished but no per-load fee). Decision affects cost model.
 - Browser support for backgrounded continuous geolocation varies (especially on iOS Safari, which throttles aggressively when the tab is not foreground). The page must handle gracefully when the finder's browser drops the stream — define the UX (e.g., "Tap to resume sharing").
+- Partner billing model: per-code-minted, per-activated-tag, per-find, monthly fee, or a hybrid? Affects whether a billing/subscription module is needed in v1.
+- Partner code-CSV download policy: single-use only (most secure), N-times within a window (more forgiving), or partner-callable anytime (most convenient, weakest)? Default proposal: single-use with 7-day re-issue on partner request.
+- Partner-branded finder pages and per-partner theming (logo, support contact). Out of scope for v1, but the data model should leave room — track this when designing the `partner` table.

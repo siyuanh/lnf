@@ -4,7 +4,7 @@
 
 ## 1. Propósito
 
-LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables extraviadas (niños, personas con autismo o discapacidad intelectual, adultos con demencia). El cuidador registra a la persona protegida en una aplicación móvil e imprime etiquetas QR duraderas que se adhieren a su ropa. Si la persona es encontrada deambulando o desorientada, cualquier extraño puede escanear el QR con la cámara de su teléfono, abrir una página web pública e informar la ubicación. El cuidador es notificado a través de los canales que haya elegido (push, correo electrónico, SMS y llamada de voz), manteniendo en privado la identidad de la persona protegida y los datos de contacto del cuidador. El hallador también puede optar por compartir su ubicación en vivo de forma continua para que el cuidador pueda rastrearlo y llegar hasta él, sin perder el anonimato.
+LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables extraviadas (niños, personas con autismo o discapacidad intelectual, adultos con demencia). Marcas asociadas (partners) fabrican prendas y accesorios que llevan QR únicos no adivinables, generados por LNF y pre-impresos antes de la venta. El cuidador adquiere una de estas prendas, escanea el QR con la aplicación móvil de LNF y activa la etiqueta vinculándola a una persona protegida bajo su cuenta. Si más adelante la persona es encontrada deambulando o desorientada, cualquier extraño puede escanear ese mismo QR con la cámara de su teléfono, abrir una página web pública e informar la ubicación. El cuidador es notificado a través de los canales que haya elegido (push, correo electrónico, SMS y llamada de voz), manteniendo en privado la identidad de la persona protegida y los datos de contacto del cuidador. El hallador también puede optar por compartir su ubicación en vivo de forma continua para que el cuidador pueda rastrearlo y llegar hasta él, sin perder el anonimato.
 
 ## 2. Objetivos
 
@@ -20,17 +20,20 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - Chat en la aplicación entre cuidador y hallador.
 - WhatsApp como canal de notificación. Probablemente Fase 2.
 - Indicador de presencia en tiempo real del tipo "el cuidador va en camino".
-- Distribución física de etiquetas pre-impresas (en v1 los cuidadores imprimen sus propios QRs).
+- Fabricación de prendas por parte de LNF. LNF genera los códigos y provee la plataforma de partners; la fabricación física la realizan los partners.
+- Páginas del hallador con marca del partner y temas personalizados por partner. Fase 2.
+- Auto-registro (signup) de partners. v1 incorpora partners por invitación; el portal soporta inicio de sesión pero no registro.
 - Lanzamiento multi-región. El lanzamiento inicial es exclusivamente LATAM.
 
 ## 4. Usuarios y roles
 
 | Rol | Descripción | ¿Autenticado? |
 |---|---|---|
-| **Cuidador** | Tutor, padre o madre, familiar o profesional de cuidado que registra a las personas protegidas y recibe las alertas. | Sí |
+| **Cuidador** | Tutor, padre o madre, familiar o profesional de cuidado que activa etiquetas, registra a las personas protegidas y recibe las alertas. | Sí |
 | **Persona protegida** | El individuo vulnerable cuya ropa lleva el QR. No es usuario del sistema. | n/c |
 | **Hallador** | Un extraño que escanea el QR tras encontrar a la persona protegida. | No |
-| **Operador** (interno) | Personal del proyecto que monitorea entrega, abuso y costos. Fuera del alcance de la UI del producto en v1; usa dashboards / base de datos. | n/c |
+| **Partner** | Marca de indumentaria o tienda que genera lotes de códigos QR a través de la API o el portal de partners de LNF y los imprime sobre sus productos antes de la venta. | Sí |
+| **Operador** (interno) | Personal de LNF que monitorea entrega, abuso, costos e incorporación de partners. Fuera del alcance de la UI del producto en v1; usa dashboards / base de datos. | n/c |
 
 ## 5. Requerimientos funcionales
 
@@ -41,16 +44,31 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - El cuidador DEBE poder gestionar varias personas protegidas bajo una misma cuenta.
 - Cada persona protegida PUEDE tener varias etiquetas QR (varias prendas).
 
-### 5.2 Generación e impresión de etiquetas
+### 5.2 Generación de etiquetas (partner)
 
-- El cuidador genera un código QR único por prenda desde dentro de la aplicación.
-- El QR codifica una URL de la forma `https://<dominio>/f/<código-opaco>`. El código DEBE ser no adivinable.
-- La aplicación DEBE proveer una vista lista para impresión, dimensionada para etiquetas de tela o etiquetas termoadhesivas.
-- El cuidador DEBE poder revocar una etiqueta (por ejemplo, prenda descartada). Las etiquetas revocadas muestran al hallador una página genérica de "esta etiqueta ya no está activa" y no generan ninguna notificación.
+- Un partner DEBE poder generar un lote de códigos QR ya sea a través del portal de partners (UI web) o de una API programática.
+- Cada código generado DEBE ser no adivinable (derivado de CSPRNG) y único en todo el sistema.
+- Un código recién generado se crea en estado **`unactivated`**. Existe en la base de datos pero aún no está vinculado a ningún cuidador ni persona protegida.
+- Tras la generación, el partner DEBE recibir un artefacto descargable (CSV o equivalente) con todos los códigos del lote, apto para ser ingresado en su pipeline de impresión o etiquetado.
+- El artefacto de descarga DEBE estar disponible únicamente mediante un enlace firmado y con expiración, atado al partner solicitante; el enlace NO DEBE ser adivinable.
+- LNF DEBE llevar totales por partner: códigos generados, códigos activados, códigos revocados y hallazgos reportados por código.
+- v1 incorpora partners únicamente por invitación. El auto-registro de partners está fuera de alcance.
 
-### 5.3 Flujo del hallador
+### 5.3 Activación de la etiqueta (cuidador)
 
-- Escanear el QR con la cámara de cualquier teléfono moderno DEBE abrir directamente la página del hallador en el navegador. Sin instalación, sin inicio de sesión y sin captcha por defecto (en su lugar se aplica rate-limiting).
+- El QR codifica una URL de la forma `https://<dominio>/f/<código-opaco>`. Tanto cuidadores como halladores escanean la misma URL; el sistema decide qué renderizar en función del estado de la etiqueta y de si el visitante tiene la app móvil de LNF instalada.
+- Cuando un cuidador escanea un QR con la app de LNF instalada, los universal links / Android App Links del dispositivo DEBEN encaminar la URL hacia la app en lugar del navegador.
+- Cuando la app recibe un código `unactivated`, DEBE guiar al cuidador autenticado por el flujo de activación: elegir una persona protegida existente o crear una nueva, etiquetar la prenda (ej. "campera azul") y confirmar.
+- Cuando la app recibe un código `active` que ya pertenece al mismo cuidador, DEBE mostrar detalles informativos (qué persona protegida, qué prenda, fecha de activación) y ofrecer las acciones de revocar / re-etiquetar. NO DEBE crear un hallazgo.
+- Cuando la app recibe un código `active` que pertenece a un cuidador distinto, DEBE tratar el escaneo como acción de hallador y presentar el flujo del hallador (ver §5.4).
+- Cuando un hallador sin la app escanea el QR (caída a navegador) y el código está `unactivated`, la página DEBE mostrar "Esta etiqueta es nueva. Instale la app de LNF para activarla." con enlaces a las tiendas. No se crea ningún hallazgo.
+- Cuando un hallador sin la app escanea el QR y el código está `revoked`, la página DEBE mostrar un mensaje genérico "Esta etiqueta ya no está activa" y no crear ningún hallazgo.
+- El cuidador DEBE poder revocar una etiqueta en cualquier momento (por ejemplo, prenda descartada o vendida). Las etiquetas revocadas siguen la regla anterior.
+- Una activación exitosa DEBE emitir un evento de auditoría y vincular el `partner_id` de la etiqueta (asignado en la generación) al `caregiver_id` ahora conocido, para fines de analítica del partner.
+
+### 5.4 Flujo del hallador
+
+- Escanear el QR con la cámara de cualquier teléfono moderno DEBE abrir directamente la página del hallador en el navegador cuando la app de LNF no esté instalada (o cuando el escáner no sea el cuidador dueño de la etiqueta). Sin instalación, sin inicio de sesión y sin captcha por defecto (en su lugar se aplica rate-limiting). Cuando la app de LNF está instalada, ver §5.3 para las reglas de ruteo.
 - La página del hallador DEBE mostrar:
   - Un encabezado breve y amigable en el idioma principal del país (español o portugués), explicando que esta persona puede necesitar ayuda para volver a casa.
   - Una nota pública opcional escrita por el cuidador (texto libre, ≤200 caracteres).
@@ -62,7 +80,7 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - Tras el envío, la página DEBE mostrar una confirmación de que el cuidador fue alertado.
 - La página DEBE ofrecer al hallador la opción de compartir su ubicación en vivo de manera continua hasta que el cuidador llegue (ver §5.7).
 
-### 5.4 Notificación y escalamiento
+### 5.5 Notificación y escalamiento
 
 - El cuidador DEBE poder configurar, por persona protegida, cuáles de los canales {push, correo, SMS, llamada de voz} están habilitados y en qué orden.
 - Los cuatro canales DEBEN estar disponibles en el lanzamiento.
@@ -70,20 +88,20 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - La acción de acuse de recibo DEBE estar disponible desde cualquier canal (toque sobre la notificación push, enlace en el correo, "código de confirmación" por SMS, tecla durante la llamada de voz).
 - Si todos los canales configurados fallan en obtener un acuse dentro de la ventana definida, el sistema DEBE registrar la falla y mostrarla al cuidador la próxima vez que abra la aplicación.
 
-### 5.5 Privacidad
+### 5.6 Privacidad
 
 - El hallador NO DEBE ver el nombre, la fotografía ni los detalles médicos de la persona protegida por defecto. (La opción por etiqueta de mostrar información adicional queda como mejora de Fase 2, no para v1.)
 - El hallador NO DEBE ver, en ningún momento, la información de contacto del cuidador.
 - El cuidador, después de acusar recibo, DEBE ver el reporte del hallazgo (ubicación, contacto opcional del hallador, marca de tiempo) y PUEDE elegir contactar al hallador directamente.
 - Todos los datos personales DEBEN ser procesados en cumplimiento con la LGPD de Brasil como referencia regional más estricta; los flujos de consentimiento DEBEN ser explícitos y revocables. Los titulares de los datos (cuidadores) DEBEN poder exportar y eliminar sus datos.
 
-### 5.6 Manejo de alertas por parte del cuidador
+### 5.7 Manejo de alertas por parte del cuidador
 
 - El cuidador DEBE poder ver un historial de hallazgos por persona protegida.
 - El cuidador DEBE poder marcar un hallazgo como resuelto (persona recuperada) o como falso positivo (por ejemplo, escaneo de prueba o escaneo malicioso).
 - Marcar como falso positivo DEBE rate-limitar temporalmente futuros hallazgos sobre la misma etiqueta provenientes de la misma huella de hallador.
 
-### 5.7 Compartición de ubicación en vivo (hallador → cuidador)
+### 5.8 Compartición de ubicación en vivo (hallador → cuidador)
 
 - Tras enviar el reporte inicial del hallazgo, al hallador se le DEBE ofrecer en la misma página web una opción de un toque para compartir su ubicación en vivo de manera continua. La opción es opt-in; el hallazgo ya es accionable sin ella.
 - Mientras la compartición esté activa, el navegador DEBE transmitir las coordenadas GPS (con marca de tiempo y precisión) al backend en un intervalo razonable (objetivo: cada 5 a 15 segundos), usando un mecanismo tolerante a la app en segundo plano (por ejemplo, `watchPosition` de la Geolocation API combinado con un Service Worker o POST con `keepalive`, para que un breve cambio de pestaña no corte el flujo).
@@ -95,7 +113,7 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - Las coordenadas en vivo DEBEN conservarse únicamente lo necesario para el hallazgo activo, más una breve ventana de auditoría (por defecto: 24 horas tras Resuelto o expirado), y luego eliminarse, en línea con §5.5 / LGPD y minimización de datos.
 - Antes del primer envío de GPS, al hallador DEBE mostrársele un aviso de consentimiento claro y en lenguaje sencillo, explicando qué se comparte, con quién, por cuánto tiempo y cómo detenerlo.
 
-### 5.8 Internacionalización
+### 5.9 Internacionalización
 
 - Toda la UI dirigida al cuidador DEBE estar disponible en español (es) y portugués (pt-BR) al lanzamiento.
 - La página pública del hallador DEBE servirse en el idioma indicado por `Accept-Language`, con español como valor por defecto.
@@ -111,16 +129,26 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 
 ## 7. Casos de uso
 
-### CU-1: El cuidador registra a una persona protegida e imprime etiquetas
+### CU-0: Un partner genera un lote de códigos QR
 
-1. El cuidador abre la aplicación móvil por primera vez.
-2. La aplicación ofrece agregar una persona protegida sin crear una cuenta (modo anónimo).
-3. El cuidador ingresa: alias privado de la persona protegida, nota pública opcional escrita por el cuidador (por ejemplo, "Tengo autismo, por favor llame a mi mamá") y canales de notificación preferidos.
-4. La aplicación invita al cuidador a crear una cuenta real y verificar su correo / teléfono antes de activar SMS o voz.
-5. El cuidador genera un QR para la primera prenda y lo imprime.
-6. El cuidador adhiere el QR (termoadhesivo o etiqueta cosida) a la prenda.
+1. Una marca partner inicia sesión en el portal de partners (o llama directamente a la API de LNF).
+2. El partner solicita un lote de `N` códigos QR para una próxima producción, opcionalmente etiquetando el lote (ej. "campaña otoño-invierno 26").
+3. LNF genera `N` códigos únicos no adivinables y los crea en estado `unactivated`, atribuidos al partner.
+4. El partner descarga un CSV firmado con los códigos a través de una URL de un solo uso y con expiración.
+5. El partner ingresa el CSV en su pipeline de impresión o etiquetado; los códigos son impresos sobre las prendas antes de la venta.
 
-**Éxito:** La persona protegida tiene al menos una prenda activa con un QR vinculado a una cadena de alertas configurada.
+**Éxito:** Un nuevo lote de códigos `unactivated` existe en el sistema, el partner cuenta con el CSV necesario para imprimirlos y la analítica del lote arranca en cero.
+
+### CU-1: El cuidador activa una etiqueta adquirida
+
+1. El cuidador compra una prenda con QR pre-impreso a un partner.
+2. El cuidador abre la aplicación móvil de LNF (creando una cuenta si es la primera vez, o iniciando sesión si ya estaba registrado) y escanea el QR con la cámara dentro de la app, o escanea con la cámara del teléfono y el universal link enruta a la app de LNF.
+3. La app llama al backend con el código; el backend reporta que la etiqueta está `unactivated` y pertenece a un lote del partner.
+4. La app guía al cuidador a seleccionar una persona protegida existente o agregar una nueva (alias privado, nota pública opcional, canales de notificación preferidos). Correo y/o teléfono son verificados antes de habilitar los canales SMS o voz.
+5. El cuidador etiqueta la prenda (ej. "campera azul") y confirma.
+6. El backend marca la etiqueta como `active`, la vincula a la persona protegida y emite un evento de auditoría.
+
+**Éxito:** La etiqueta queda vinculada a una cadena de alertas configurada. Los próximos escaneos por extraños generarán hallazgos; los próximos escaneos por el mismo cuidador mostrarán detalles informativos.
 
 ### CU-2: Un extraño encuentra a la persona protegida y reporta una ubicación
 
@@ -183,3 +211,6 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 - Si se debe ofrecer una aplicación web para el cuidador en el lanzamiento o si basta con móvil más una vista web mínima de "gestión de cuenta".
 - Si usar Google Maps Platform para la vista en vivo del cuidador (UX familiar, costo por carga de mapa y por solicitud de direcciones) o una alternativa libre (MapLibre + tiles de OpenStreetMap, algo menos pulida pero sin tarifa por carga). La decisión afecta el modelo de costos.
 - El soporte de los navegadores para geolocalización continua en segundo plano varía (especialmente iOS Safari, que aplica un throttling agresivo cuando la pestaña no está en primer plano). La página debe manejar con elegancia cuando el flujo se cae — definir la UX (por ejemplo, "Toque para reanudar la compartición").
+- Modelo de cobro a partners: por código generado, por etiqueta activada, por hallazgo, cuota mensual o un híbrido. Determina si se necesita un módulo de facturación / suscripción en v1.
+- Política de descarga del CSV de códigos para partners: un solo uso (más seguro), N veces dentro de una ventana (más tolerante), o accesible cuando el partner lo pida (más cómodo, más débil). Propuesta por defecto: un solo uso, con re-emisión a 7 días previa solicitud del partner.
+- Páginas del hallador con marca del partner y temas por partner (logo, contacto de soporte). Fuera de alcance para v1, pero el modelo de datos debe dejar espacio — registrarlo al diseñar la tabla `partner`.
