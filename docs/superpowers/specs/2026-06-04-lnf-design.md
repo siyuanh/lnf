@@ -195,7 +195,7 @@ reported ──► expired       (terminal from reported only)
 - Append-only, indexed `(find_id, recorded_at)`. Hard-deleted 24 h after parent find terminates.
 
 #### `notification_attempt`
-- `id`, `find_id` (fk), `channel_kind`, `channel_target`, `attempted_at`, `provider_message_id`, `delivery_status` (`queued` | `sent` | `delivered` | `failed`), `failure_reason`, `cost_minor_units`.
+- `id`, `find_id` (fk), `channel_kind`, `channel_target`, `attempted_at`, `provider_message_id`, `delivery_status` (`queued` | `sent` | `delivered` | `failed`), `failure_reason`, `cost_minor_units`, `ack_link_expires_at` (nullable; null for `push` / `voice` channels which don't carry a link), `ack_link_used_at` (nullable; set when the ack link from this attempt is successfully used).
 
 #### `spend_ledger`
 - `id`, `caregiver_id`, `day` (date), `kind` (`sms` | `voice`), `cost_minor_units`, `country_code`.
@@ -204,6 +204,7 @@ reported ──► expired       (terminal from reported only)
 #### `audit_event`
 - `id`, `caregiver_id` (nullable), `partner_id` (nullable), `find_id` (nullable), `kind`, `payload` (jsonb), `at`.
 - Kinds: `find.created`, `find.acknowledged`, `find.claimed`, `find.resolved`, `find.false_positive`, `find.expired`, `tag.activated`, `tag.revoked`, `partner.batch.minted`, `partner.batch.csv_downloaded`, `partner.api_key.created`, `partner.api_key.revoked`, `caregiver.exported_data`, `caregiver.deleted_account`.
+- **Payload schema convention (S1-5):** `payload` is an append-only blob carrying a top-level `v` (integer, payload version) field. Per-kind payload shapes live in `packages/schemas/audit/<kind>.v<N>.ts` so historical shapes are versioned alongside code rather than living implicitly in old rows. Readers (LGPD subject-access export §4.5 #44, operator dashboards) MUST tolerate unknown fields and missing-but-formerly-required fields, and MUST handle every `v` they encounter (or fall through to a generic dump). When a payload shape evolves, bump `v` and add the new schema file; never edit a published version.
 
 ### 2.4 Indexes
 
@@ -333,16 +334,21 @@ CSV is single-use by default; re-issue requires operator action (audit-logged), 
    Server (single transaction):
      1. SELECT tag FOR UPDATE WHERE code=:code AND state='unactivated'
      2. assert protected_person.caregiver_id == session.caregiver_id
-     3. UPDATE tag SET state='active',
+     3. assert ≥ 1 active+verified notification_channel resolves for this
+        protected_person (per-person channel OR account-default channel
+        with verified_at IS NOT NULL); 422 otherwise
+     4. UPDATE tag SET state='active',
                        protected_person_id=:pid,
                        caregiver_id=session.caregiver_id,
                        label=:label,
                        activated_at=now()
-     4. emit audit_event(tag.activated)
-     5. respond { tag }
+     5. emit audit_event(tag.activated)
+     6. respond { tag }
 ```
 
 `SELECT … FOR UPDATE` prevents two-caregiver activation races; loser gets 409.
+
+> **At-least-one-channel invariant (S1-2):** Activation is rejected with 422 if no verified notification channel resolves for the protected person. Without this gate, a find on a no-channel tag would have an empty channel list at step 0, immediately advance through the `escalate_find` chain with zero attempts, and terminate as `expired` — silent failure with no signal to the caregiver. The activation UI surfaces this as "Add at least one notification channel before activating this tag" and links to channel setup.
 
 ### 3.4 Flow C — Finder reports
 
@@ -363,6 +369,10 @@ CSV is single-use by default; re-issue requires operator action (audit-logged), 
 ```
 
 Find creation and escalation enqueue are in **one Postgres transaction** (Graphile Worker is Postgres-backed). No path exists where the find is committed but the job isn't.
+
+> **Implementation note (S1-1):** This atomicity guarantee only holds if `addJob` is invoked with the same client as the find INSERT, e.g.
+> `await workerUtils.addJob('escalate_find', { findId, step: 0 }, { withPgClient: tx })`.
+> Using Graphile Worker's default pool would commit the job out-of-band and silently break the guarantee. The integration test in §5.1 L3 ("Find creation atomicity") asserts this by injecting a queue-enqueue failure and verifying the find row is rolled back.
 
 The `find_token` is the only credential the finder has — used to authorize live location samples for this find only.
 
@@ -403,7 +413,7 @@ The `find_token` is the only credential the finder has — used to authorize liv
 
 Properties:
 - **Idempotent:** every job invocation re-reads `find.status`; ack between steps → next job no-ops.
-- **Acknowledgement is a write, not a callback:** push tap, email link, SMS link, voice keypress all hit `POST /find/:id/ack` with an HMAC signed against the specific `notification_attempt.id`.
+- **Acknowledgement is a write, not a callback:** push tap, email link, SMS link, voice keypress all hit `POST /find/:id/ack` with an HMAC signed against the specific `notification_attempt.id`. For email and SMS specifically (links sent over channels we don't control), the link is single-use and 24-hour-expiring (S1-4): the ack endpoint rejects when `ack_link_used_at IS NOT NULL` or `now() > ack_link_expires_at`. Push and voice ack don't carry shareable links and are not subject to this check.
 - **Delays are per-channel and per-account:** `notification_channel.escalation_delay_seconds` on channel `N` means "wait this long *after* channel N is dispatched before invoking channel N+1." First channel always fires immediately. Default proposal (matches the requirements doc's 2 / 5 / 5 minutes): `push.delay=120` (push fires immediately, then 2 min wait for email), `email.delay=300` (5 min wait for SMS), `sms.delay=300` (5 min wait for voice), `voice.delay=0` (last channel, ignored). Operator-configurable.
 - **Spend cap is checked just-in-time** at dispatch, not at schedule time.
 - **No per-channel retry on provider 5xx:** worker proceeds to next step immediately. Saves money on duplicate sends.
@@ -465,6 +475,7 @@ Concrete handling for failure modes. Grouped by surface.
 | 6 | Caregiver tries to activate a `revoked` tag | 410. UI: "This tag was revoked and cannot be reactivated." Reactivation deliberately unsupported. |
 | 7 | Caregiver activates against a `protected_person` belonging to a different account | 403. Endpoint asserts `protected_person.caregiver_id == session.caregiver_id`. |
 | 8 | Mass scanning of unactivated codes (warehouse theft) | Per-batch counter on unactivated scans; alert operator if > 5 in 24 h on a single batch. Doesn't auto-revoke. |
+| 8a | Caregiver mis-revokes their own active tag and wants to undo (S1-3) | v1: not self-recoverable. The `tag.state` machine is monotonic forward (`unactivated → active → revoked`) by deliberate choice, so no in-app undo. The revoke action shows a confirm dialog ("This cannot be undone. Buy a new tag for the same garment if needed.") to make the irreversibility explicit. Operator can manually flip `state='active'` for support cases (audit-logged). Phase 2: a short undo window (e.g., 60 s) on the revoke action. |
 
 ### 4.2 Finder reporting
 
@@ -489,7 +500,8 @@ Concrete handling for failure modes. Grouped by surface.
 | 20 | Spend cap hit mid-chain | Channel skipped, attempt logged with `failure_reason='spend_cap'`, chain proceeds without delay. |
 | 21 | Voice call answered, no key pressed | TTS finishes, hangs up, `delivery_status=delivered`, no ack. Chain continues. |
 | 22 | Caregiver clicks email "Acknowledge" link from desktop browser | Public route signed with HMAC over `notification_attempt.id`. Sets `find.acknowledged_at`, shows minimal "Got it" page. No deep-link required. |
-| 23 | Email link forwarded / clicked twice | Idempotent (`WHERE acknowledged_at IS NULL`). Second click re-renders same confirmation. |
+| 23 | Email link forwarded / clicked twice | Single-use per `notification_attempt`: first click sets `ack_link_used_at` and `find.acknowledged_at`. Second click sees `ack_link_used_at IS NOT NULL` → 410 with a friendly "Already acknowledged from another channel/click" page. (Was previously documented as idempotent same-response; tightened per S1-4 to reduce replay attack surface.) |
+| 23a | Email/SMS ack link leaked to a third party (S1-4) | Link's `ack_link_expires_at` defaults to 24 h after the attempt. After expiry, the ack endpoint returns 410 regardless of HMAC validity. Combined with `ack_link_used_at` (#23), an intercepted-but-unused link is dead within 24 h; an intercepted-and-used link can't ack a future find. |
 | 24 | Voice ack: wrong key pressed | TTS allows up to 3 attempts; on failure, call ends without ack, chain continues. |
 | 25 | Twilio webhook arrives 30 min after delivery | Pure observability update. Doesn't influence escalation. |
 | 26 | Two concurrent finds on same tag | Two parallel chains; caregiver may get two pushes (different finders, both worth knowing). The 5-min collapse (#10) only suppresses *additional* finds within the window, not concurrent independent ones. |
