@@ -4,6 +4,8 @@
 **Status:** Draft, pending stakeholder review
 **Authors:** Claude (drafting), Siyuan Hua (approver)
 
+> This is the source-of-truth English spec. A parallel Spanish mirror lives at [`2026-06-04-lnf-design.es.md`](./2026-06-04-lnf-design.es.md). On any discrepancy, this file wins.
+
 ## 0. Context
 
 This spec describes the v1 architecture, data model, request flows, error handling, testing, and explicit Phase 2 deferrals for **LNF** — a service that helps return lost vulnerable persons (children, people with autism or intellectual disability, adults with dementia) to their caregivers using QR-tagged clothing.
@@ -664,5 +666,6 @@ Anything in §6 is a "no for v1" decision. Slipping an item back into v1 scope r
 
 - [Requirements (English)](../../requirements.en.md)
 - [Requirements (Spanish)](../../requirements.es.md)
+- [Design v1 (Spanish mirror)](./2026-06-04-lnf-design.es.md)
 - [Repo README (bilingual)](../../../README.md)
 - [Agent guidance (CLAUDE.md)](../../../CLAUDE.md)
