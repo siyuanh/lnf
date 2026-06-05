@@ -26,6 +26,10 @@ Partners use the LNF API or partner portal to mint batches of unique unguessable
 
 Lost-object recovery, in-app chat, WhatsApp delivery, real-time presence, and pre-printed tag fulfillment are deliberately out of scope for the first release. See the requirements docs for the full list.
 
+## Building locally
+
+See [`docs/dev/getting-started.md`](docs/dev/getting-started.md). Requires Node 20+, pnpm 9+, Docker.
+
 ---
 
 <a id="lnf-es"></a>
@@ -57,3 +61,7 @@ Los partners usan la API o el portal de partners de LNF para generar lotes de c�
 ## No-objetivos para v1
 
 La recuperación de objetos extraviados, el chat dentro de la aplicación, la entrega por WhatsApp, la presencia en tiempo real y la distribución de etiquetas pre-impresas están deliberadamente fuera del alcance del primer lanzamiento. La lista completa se encuentra en los documentos de requerimientos.
+
+## Construir localmente
+
+Ver [`docs/dev/getting-started.md`](docs/dev/getting-started.md). Requiere Node 20+, pnpm 9+, Docker.
