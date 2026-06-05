@@ -1,1 +1,2 @@
-export const SCHEMAS_PACKAGE = "@app/schemas";
+export * from "./audit/index.js";
+export * from "./partner.js";
