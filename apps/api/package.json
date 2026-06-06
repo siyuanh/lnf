@@ -20,6 +20,7 @@
     "@hono/node-server": "^1.13.0",
     "@noble/hashes": "^2.2.0",
     "drizzle-orm": "^0.45.2",
+    "graphile-worker": "^0.16.6",
     "hono": "^4.6.0",
     "postgres": "^3.4.9",
     "zod": "^3.23.0"
