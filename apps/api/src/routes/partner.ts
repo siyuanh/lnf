@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
 import { MintBatchRequest } from "@app/schemas";
 import type { Db } from "../db/client.js";
@@ -86,10 +86,16 @@ async function consumeCsvToken(opts: PartnerRouterOpts, partnerId: string, batch
     if (expected.length !== got.length || !timingSafeEqual(expected, got)) {
       return { status: 401 as const };
     }
-    await tx
+    // Atomic compare-and-clear: WHERE includes the original hash so two concurrent
+    // requests that both pass the constant-time check above can't both succeed —
+    // the loser's UPDATE matches 0 rows because the hash is now NULL. Returns 410
+    // to the loser, treating it as "already consumed".
+    const updated = await tx
       .update(tagBatch)
       .set({ csvTokenHash: null, csvDownloadedAt: new Date() })
-      .where(eq(tagBatch.id, batchId));
+      .where(and(eq(tagBatch.id, batchId), eq(tagBatch.csvTokenHash, batch.csvTokenHash)))
+      .returning({ id: tagBatch.id });
+    if (updated.length === 0) return { status: 410 as const };
     await logAuditEvent(tx, {
       kind: "partner.batch.csv_downloaded",
       partnerId,

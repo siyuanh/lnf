@@ -62,6 +62,19 @@ describe("GET /partner-api/batches/:id/codes.csv", () => {
     expect(again.status).toBe(410);
   });
 
+  it("under concurrency, exactly one of two parallel downloads wins", async () => {
+    const { downloadUrl } = await mintBatch(4);
+    const [a, b] = await Promise.all([
+      app.request(downloadUrl, { headers: { authorization: `Bearer ${presented}` } }),
+      app.request(downloadUrl, { headers: { authorization: `Bearer ${presented}` } }),
+    ]);
+    const statuses = [a.status, b.status].sort((x, y) => x - y);
+    expect(statuses).toEqual([200, 410]);
+    // The 200 response must contain real codes; drain both bodies.
+    await a.text();
+    await b.text();
+  });
+
   it("refuses a forged token (constant-time compare)", async () => {
     const { batchId } = await mintBatch(3);
     const res = await app.request(
