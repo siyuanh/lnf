@@ -13,7 +13,7 @@ export const app = new Hono()
   .use(
     "*",
     cors({
-      origin: env.BETTER_AUTH_URL,
+      origin: env.WEB_ORIGIN,
       credentials: true,
     }),
   )

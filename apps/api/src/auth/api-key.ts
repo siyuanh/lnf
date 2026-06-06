@@ -34,6 +34,10 @@ declare module "hono" {
   }
 }
 
+// 32-byte zero buffer used for the dummy compare on the unknown-prefix path,
+// so the middleware's response time doesn't reveal whether a prefix exists.
+const DUMMY_HASH = Buffer.alloc(32);
+
 export function makeApiKeyMiddleware(opts: ApiKeyMiddlewareOpts): MiddlewareHandler {
   return async (c, next) => {
     const header = c.req.header("authorization") ?? "";
@@ -46,10 +50,13 @@ export function makeApiKeyMiddleware(opts: ApiKeyMiddlewareOpts): MiddlewareHand
       .where(and(eq(partnerApiKey.keyPrefix, prefix!), isNull(partnerApiKey.revokedAt)))
       .limit(1);
     const row = rows[0];
-    if (!row) return unauthorized(c);
-    const expected = Buffer.from(row.keyHash, "hex");
+    // Always run a constant-time compare even when no row was found, so an
+    // attacker can't tell "valid prefix, wrong secret" from "unknown prefix"
+    // by timing alone. The dummy compare guarantees equal-length buffers.
     const got = Buffer.from(hashApiKey(secret!, opts.pepper), "hex");
-    if (expected.length !== got.length || !timingSafeEqual(expected, got)) return unauthorized(c);
+    const expected = row ? Buffer.from(row.keyHash, "hex") : DUMMY_HASH;
+    const ok = expected.length === got.length && timingSafeEqual(expected, got);
+    if (!row || !ok) return unauthorized(c);
     c.set("partnerId", row.partnerId);
     c.set("apiKeyId", row.id);
     opts.db.update(partnerApiKey).set({ lastUsedAt: new Date() }).where(eq(partnerApiKey.id, row.id))
