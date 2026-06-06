@@ -13,7 +13,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "seed:partner": "tsx scripts/seed-partner.ts"
   },
   "dependencies": {
     "@app/schemas": "workspace:*",
