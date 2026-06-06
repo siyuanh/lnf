@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { eq } from "drizzle-orm";
-import { partner, partnerApiKey, tag, tagBatch, auditEvent } from "../src/db/schema.js";
+import { partner, partnerApiKey, tag, auditEvent } from "../src/db/schema.js";
 import { hashApiKey, mintApiKey } from "../src/auth/api-key.js";
+import { resetPartnerTables } from "./helpers/db.js";
 
 describe("POST /partner/batches", () => {
   const pepper = "test_pepper_at_least_32_chars_long_xx";
@@ -19,11 +20,7 @@ describe("POST /partner/batches", () => {
     if (!app) {
       app = (await import("../src/index.js")).app;
     }
-    await db.delete(auditEvent);
-    await db.delete(tag);
-    await db.delete(tagBatch);
-    await db.delete(partnerApiKey);
-    await db.delete(partner);
+    await resetPartnerTables(db);
     const [p] = await db.insert(partner).values({ name: "Acme", billingEmail: "ops@acme.test" }).returning();
     const minted = mintApiKey();
     presented = minted.presented;

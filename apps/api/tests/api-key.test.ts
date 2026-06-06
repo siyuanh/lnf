@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { partner, partnerApiKey } from "../src/db/schema.js";
 import { hashApiKey, makeApiKeyMiddleware, mintApiKey } from "../src/auth/api-key.js";
+import { resetPartnerTables } from "./helpers/db.js";
 
 describe("api-key middleware", () => {
   const db = drizzle(postgres(process.env.DATABASE_URL!));
@@ -12,8 +13,7 @@ describe("api-key middleware", () => {
   let presented: string;
 
   beforeEach(async () => {
-    await db.delete(partnerApiKey);
-    await db.delete(partner);
+    await resetPartnerTables(db);
     const [p] = await db.insert(partner).values({ name: "Acme", billingEmail: "ops@acme.test" }).returning();
     partnerId = p!.id;
     const minted = mintApiKey();

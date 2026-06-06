@@ -4,12 +4,13 @@ import postgres from "postgres";
 import { eq } from "drizzle-orm";
 import { logAuditEvent } from "../src/audit/log.js";
 import { auditEvent } from "../src/db/schema.js";
+import { resetPartnerTables } from "./helpers/db.js";
 
 describe("logAuditEvent", () => {
   const db = drizzle(postgres(process.env.DATABASE_URL!));
 
   beforeEach(async () => {
-    await db.delete(auditEvent);
+    await resetPartnerTables(db);
   });
 
   it("writes a versioned payload row", async () => {

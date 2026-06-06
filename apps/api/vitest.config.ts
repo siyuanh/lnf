@@ -6,5 +6,8 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 60_000,
     globalSetup: ["./tests/setup.ts"],
+    // Tests share a single Postgres testcontainer; run files serially.
+    fileParallelism: false,
+    sequence: { concurrent: false },
   },
 });
