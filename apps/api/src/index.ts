@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { loadEnv } from "./env.js";
 import { makeDb } from "./db/client.js";
-import { partnerRouter } from "./routes/partner.js";
+import { partnerApiRouter, partnerSessionRouter } from "./routes/partner.js";
 import { makeAuth } from "./auth/better-auth.js";
 
 const env = loadEnv();
@@ -11,6 +11,7 @@ const auth = makeAuth({ db, secret: env.BETTER_AUTH_SECRET, baseUrl: env.BETTER_
 export const app = new Hono()
   .get("/healthz", (c) => c.json({ ok: true }))
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
-  .route("/partner", partnerRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }));
+  .route("/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
+  .route("/partner", partnerSessionRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER, auth }));
 
 export type AppType = typeof app;
