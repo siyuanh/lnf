@@ -1,4 +1,4 @@
-import type { Db } from "../db/client.js";
+import type { DbExecutor } from "../db/client.js";
 import { auditEvent } from "../db/schema.js";
 
 export interface AuditEventInput {
@@ -9,7 +9,7 @@ export interface AuditEventInput {
   payload: { v: number } & Record<string, unknown>;
 }
 
-export async function logAuditEvent(db: Db, evt: AuditEventInput): Promise<void> {
+export async function logAuditEvent(db: DbExecutor, evt: AuditEventInput): Promise<void> {
   await db.insert(auditEvent).values({
     kind: evt.kind,
     caregiverId: evt.caregiverId ?? null,
