@@ -7,6 +7,7 @@ import {
   timestamp,
   integer,
   boolean,
+  jsonb,
   unique,
   index,
 } from "drizzle-orm/pg-core";
@@ -35,7 +36,7 @@ export const partnerUser = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
-  (t) => ({ emailUnique: unique("partner_user_email_unique").on(t.email) }),
+  (t) => [unique("partner_user_email_unique").on(t.email)],
 );
 
 export const partnerApiKey = pgTable(
@@ -50,7 +51,14 @@ export const partnerApiKey = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
-  (t) => ({ keyPrefixIdx: index("partner_api_key_prefix_idx").on(t.keyPrefix) }),
+  (t) => [
+    // UNIQUE not just INDEX: the middleware does a single-row lookup by prefix
+    // and constant-time-compares the secret hash. With 40 bits of prefix space,
+    // collisions are improbable but not impossible — without UNIQUE, a colliding
+    // mint would silently render one of the two keys unfindable. UNIQUE makes
+    // the rare collision a loud insert error so the mint can retry.
+    unique("partner_api_key_prefix_unique").on(t.keyPrefix),
+  ],
 );
 
 export const tagBatch = pgTable("tag_batch", {
@@ -78,19 +86,30 @@ export const tag = pgTable(
     activatedAt: timestamp("activated_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
-  (t) => ({
-    codeUnique: unique("tag_code_unique").on(t.code),
-    partnerBatchStateIdx: index("tag_partner_batch_state_idx").on(t.partnerId, t.batchId, t.state),
-  }),
+  (t) => [
+    unique("tag_code_unique").on(t.code),
+    index("tag_partner_batch_state_idx").on(t.partnerId, t.batchId, t.state),
+  ],
 );
 
+/**
+ * audit_event is intentionally a flat log with NO foreign keys on caregiver_id /
+ * partner_id / find_id. Audit must outlive subject deletion: under LGPD an
+ * account-deletion request cascades the user's records, but the audit trail of
+ * what happened (mint counts, downloads, key rotations) must remain. Adding FKs
+ * here would either break account-deletion or force CASCADE — both wrong.
+ *
+ * payload is jsonb so future kinds can be queried via `payload->'v'` etc.;
+ * every payload object carries a top-level `v: <integer>` per spec S1-5,
+ * and per-kind shapes live in packages/schemas/src/audit/*.v<N>.ts.
+ */
 export const auditEvent = pgTable("audit_event", {
   id: uuid("id").primaryKey().defaultRandom(),
   caregiverId: uuid("caregiver_id"),
   partnerId: uuid("partner_id"),
   findId: uuid("find_id"),
   kind: text("kind").notNull(),
-  payload: text("payload").notNull().default("{}"),
+  payload: jsonb("payload").notNull().default({}),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });
 

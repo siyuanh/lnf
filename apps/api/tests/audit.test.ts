@@ -23,6 +23,6 @@ describe("logAuditEvent", () => {
     });
     const rows = await db.select().from(auditEvent).where(eq(auditEvent.kind, "partner.batch.minted"));
     expect(rows).toHaveLength(1);
-    expect(JSON.parse(rows[0]!.payload)).toMatchObject({ v: 1, batchId, size: 100 });
+    expect(rows[0]!.payload).toMatchObject({ v: 1, batchId, size: 100 });
   });
 });

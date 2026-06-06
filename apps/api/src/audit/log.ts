@@ -15,6 +15,6 @@ export async function logAuditEvent(db: DbExecutor, evt: AuditEventInput): Promi
     caregiverId: evt.caregiverId ?? null,
     partnerId: evt.partnerId ?? null,
     findId: evt.findId ?? null,
-    payload: JSON.stringify(evt.payload),
+    payload: evt.payload,
   });
 }
