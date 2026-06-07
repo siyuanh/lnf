@@ -13,6 +13,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "seed:partner": "tsx scripts/seed-partner.ts"
   },
