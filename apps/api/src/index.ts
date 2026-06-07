@@ -7,7 +7,12 @@ import { makeAuth } from "./auth/better-auth.js";
 
 const env = loadEnv();
 const db = makeDb(env);
-const auth = makeAuth({ db, secret: env.BETTER_AUTH_SECRET, baseUrl: env.BETTER_AUTH_URL });
+const auth = makeAuth({
+  db,
+  secret: env.BETTER_AUTH_SECRET,
+  baseUrl: env.BETTER_AUTH_URL,
+  cookieDomain: env.COOKIE_DOMAIN,
+});
 
 export const app = new Hono()
   .use(

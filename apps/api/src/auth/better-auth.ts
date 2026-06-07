@@ -7,6 +7,7 @@ export interface AuthOpts {
   db: Db;
   secret: string;
   baseUrl: string;
+  cookieDomain?: string;
 }
 
 export function makeAuth(opts: AuthOpts) {
@@ -24,6 +25,12 @@ export function makeAuth(opts: AuthOpts) {
     baseURL: opts.baseUrl,
     emailAndPassword: { enabled: true, autoSignIn: true },
     session: { expiresIn: 60 * 60 * 24 * 30 },
+    advanced: opts.cookieDomain
+      ? {
+          crossSubDomainCookies: { enabled: true, domain: opts.cookieDomain },
+          defaultCookieAttributes: { sameSite: "none", secure: true },
+        }
+      : undefined,
   });
 }
 
