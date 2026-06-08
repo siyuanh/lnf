@@ -15,7 +15,7 @@
   },
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["pg", "@types/pg"]
+      "ignoreMissing": ["pg", "@types/pg", "kysely"]
     }
   }
 }

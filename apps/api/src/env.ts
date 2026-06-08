@@ -12,6 +12,10 @@ const EnvSchema = z.object({
   // /partner/*. Defaults to BETTER_AUTH_URL for the common case where the
   // portal and the auth callback share an origin; split when they diverge.
   WEB_ORIGIN: z.string().url().optional(),
+  // Cookie domain for cross-subdomain Better-Auth sessions in prod, e.g.
+  // ".example.com" so cookies set by api.example.com flow to app.example.com.
+  // Leave unset for localhost dev (no cookie domain).
+  COOKIE_DOMAIN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema> & { WEB_ORIGIN: string };

@@ -1,0 +1,9 @@
+node_modules
+dist
+.turbo
+.env
+.env.*
+tests
+*.test.ts
+coverage
+*.tsbuildinfo
