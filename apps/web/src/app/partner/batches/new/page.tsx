@@ -2,8 +2,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
 export default function NewBatchPage() {
   const router = useRouter();
   const [size, setSize] = useState(100);
@@ -16,7 +14,7 @@ export default function NewBatchPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await fetch(`${API}/partner/batches`, {
+    const res = await fetch(`/api/partner/batches`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
@@ -38,7 +36,7 @@ export default function NewBatchPage() {
           Batch ID: <code>{result.batchId}</code>
         </p>
         <p style={{ color: "crimson" }}>The CSV is single-use. Download it now and store it safely.</p>
-        <a href={`${API}${result.downloadUrl}`} download>
+        <a href={result.downloadUrl} download>
           Download CSV
         </a>
         <p>

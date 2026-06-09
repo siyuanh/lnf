@@ -128,7 +128,7 @@ export function partnerApiRouter(opts: PartnerRouterOpts) {
     const partnerId = c.get("partnerId");
     const input = c.req.valid("json");
     const result = await mintBatch(opts, partnerId, input);
-    return c.json(toMintResponse(result, input.size, "/partner-api"), 201);
+    return c.json(toMintResponse(result, input.size, "/api/partner-api"), 201);
   });
 
   r.get("/batches/:id/codes.csv", async (c) => {
@@ -171,7 +171,7 @@ export function partnerSessionRouter(opts: PartnerSessionRouterOpts) {
     const partnerId = c.get("partnerId");
     const input = c.req.valid("json");
     const result = await mintBatch(opts, partnerId, input);
-    return c.json(toMintResponse(result, input.size, "/partner"), 201);
+    return c.json(toMintResponse(result, input.size, "/api/partner"), 201);
   });
 
   r.get("/batches/:id/codes.csv", async (c) => {

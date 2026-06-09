@@ -12,6 +12,14 @@ const config: NextConfig = {
   // /repo/apps/web in Docker and emits server.js at the standalone root,
   // which breaks the Dockerfile COPY paths).
   outputFileTracingRoot: join(__dirname, "../.."),
+  // Same-origin proxy for /api/*. Lets web + api share one Cloud Run service
+  // (sidecar pattern) and avoids the *.run.app Public Suffix List cookie issue.
+  // Dev: api runs on localhost:3001. Prod: api sidecar listens on localhost:3001
+  // inside the same Cloud Run service. API_PROXY_TARGET overrides for testing.
+  async rewrites() {
+    const target = process.env.API_PROXY_TARGET ?? "http://localhost:3001";
+    return [{ source: "/api/:path*", destination: `${target}/api/:path*` }];
+  },
 };
 
 export default config;

@@ -6,7 +6,7 @@ import { partner, partnerApiKey, tag, auditEvent } from "../src/db/schema.js";
 import { hashApiKey, mintApiKey } from "../src/auth/api-key.js";
 import { resetPartnerTables } from "./helpers/db.js";
 
-describe("POST /partner-api/batches", () => {
+describe("POST /api/partner-api/batches", () => {
   const pepper = "test_pepper_at_least_32_chars_long_xx";
   process.env.PARTNER_API_KEY_PEPPER = pepper;
   process.env.BETTER_AUTH_SECRET = "test_secret_at_least_32_chars_long_xxx";
@@ -33,7 +33,7 @@ describe("POST /partner-api/batches", () => {
   });
 
   it("rejects without auth", async () => {
-    const res = await app.request("/partner-api/batches", {
+    const res = await app.request("/api/partner-api/batches", {
       method: "POST",
       body: JSON.stringify({ size: 10 }),
       headers: { "content-type": "application/json" },
@@ -42,7 +42,7 @@ describe("POST /partner-api/batches", () => {
   });
 
   it("rejects size > 100000", async () => {
-    const res = await app.request("/partner-api/batches", {
+    const res = await app.request("/api/partner-api/batches", {
       method: "POST",
       body: JSON.stringify({ size: 100_001 }),
       headers: { "content-type": "application/json", authorization: `Bearer ${presented}` },
@@ -51,7 +51,7 @@ describe("POST /partner-api/batches", () => {
   });
 
   it("creates a batch and returns a download URL", async () => {
-    const res = await app.request("/partner-api/batches", {
+    const res = await app.request("/api/partner-api/batches", {
       method: "POST",
       body: JSON.stringify({ size: 25, label: "AW26" }),
       headers: { "content-type": "application/json", authorization: `Bearer ${presented}` },
@@ -59,7 +59,7 @@ describe("POST /partner-api/batches", () => {
     expect(res.status).toBe(201);
     const body = await res.json() as { batchId: string; size: number; downloadUrl: string; expiresAt: string };
     expect(body.size).toBe(25);
-    expect(body.downloadUrl).toMatch(new RegExp(`/partner-api/batches/${body.batchId}/codes\\.csv\\?token=`));
+    expect(body.downloadUrl).toMatch(new RegExp(`/api/partner-api/batches/${body.batchId}/codes\\.csv\\?token=`));
     const tags = await db.select().from(tag).where(eq(tag.batchId, body.batchId));
     expect(tags).toHaveLength(25);
     expect(new Set(tags.map((t) => t.code)).size).toBe(25);

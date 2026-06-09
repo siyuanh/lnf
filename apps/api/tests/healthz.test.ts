@@ -10,7 +10,7 @@ describe("healthz", () => {
   });
 
   it("returns ok", async () => {
-    const res = await app.request("/healthz");
+    const res = await app.request("/api/healthz");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
   });

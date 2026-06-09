@@ -22,9 +22,9 @@ export const app = new Hono()
       credentials: true,
     }),
   )
-  .get("/healthz", (c) => c.json({ ok: true }))
+  .get("/api/healthz", (c) => c.json({ ok: true }))
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
-  .route("/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
-  .route("/partner", partnerSessionRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER, auth }));
+  .route("/api/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
+  .route("/api/partner", partnerSessionRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER, auth }));
 
 export type AppType = typeof app;

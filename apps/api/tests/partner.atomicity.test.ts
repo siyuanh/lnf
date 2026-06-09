@@ -36,7 +36,7 @@ describe("mint atomicity", () => {
     const spy = vi.spyOn(audit, "logAuditEvent").mockImplementation(async () => {
       throw new Error("simulated failure");
     });
-    const res = await app.request("/partner-api/batches", {
+    const res = await app.request("/api/partner-api/batches", {
       method: "POST",
       body: JSON.stringify({ size: 10 }),
       headers: { "content-type": "application/json", authorization: `Bearer ${presented}` },

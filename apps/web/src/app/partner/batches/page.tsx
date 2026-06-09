@@ -10,12 +10,10 @@ interface Batch {
   csvDownloadedAt: string | null;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
 export default function BatchesPage() {
   const [batches, setBatches] = useState<Batch[] | null>(null);
   useEffect(() => {
-    fetch(`${API}/partner/batches`, { credentials: "include" })
+    fetch(`/api/partner/batches`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setBatches(data.batches));
   }, []);

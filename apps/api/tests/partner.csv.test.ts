@@ -5,7 +5,7 @@ import { partner, partnerApiKey } from "../src/db/schema.js";
 import { hashApiKey, mintApiKey } from "../src/auth/api-key.js";
 import { resetPartnerTables } from "./helpers/db.js";
 
-describe("GET /partner-api/batches/:id/codes.csv", () => {
+describe("GET /api/partner-api/batches/:id/codes.csv", () => {
   const pepper = "test_pepper_at_least_32_chars_long_xx";
   process.env.PARTNER_API_KEY_PEPPER = pepper;
   process.env.BETTER_AUTH_SECRET = "test_secret_at_least_32_chars_long_xxx";
@@ -16,7 +16,7 @@ describe("GET /partner-api/batches/:id/codes.csv", () => {
   let app: typeof import("../src/index.js")["app"];
 
   async function mintBatch(size: number) {
-    const res = await app.request("/partner-api/batches", {
+    const res = await app.request("/api/partner-api/batches", {
       method: "POST",
       body: JSON.stringify({ size }),
       headers: { "content-type": "application/json", authorization: `Bearer ${presented}` },
@@ -78,7 +78,7 @@ describe("GET /partner-api/batches/:id/codes.csv", () => {
   it("refuses a forged token (constant-time compare)", async () => {
     const { batchId } = await mintBatch(3);
     const res = await app.request(
-      `/partner-api/batches/${batchId}/codes.csv?token=${batchId}.totally-wrong-secret-here-please-die`,
+      `/api/partner-api/batches/${batchId}/codes.csv?token=${batchId}.totally-wrong-secret-here-please-die`,
       { headers: { authorization: `Bearer ${presented}` } },
     );
     expect(res.status).toBe(401);
