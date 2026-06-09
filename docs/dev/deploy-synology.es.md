@@ -61,11 +61,12 @@ scp .env.prod.example admin@nas:/volume1/docker/lnf/.env.prod
 cd /volume1/docker/lnf
 sudo docker load -i images/lnf-images-0.1.0.tar
 
-# Generar secretos
+# Generar secretos. Hex es seguro para URLs; base64 puede incluir `/` y `+`
+# que rompen la DATABASE_URL que el contenedor api arma con este password.
 {
-  echo "POSTGRES_PASSWORD=$(openssl rand -base64 24 | tr -d '\n=')"
-  echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32 | tr -d '\n=')"
-  echo "PARTNER_API_KEY_PEPPER=$(openssl rand -base64 32 | tr -d '\n=')"
+  echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+  echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
+  echo "PARTNER_API_KEY_PEPPER=$(openssl rand -hex 32)"
 } >> .env.prod
 chmod 600 .env.prod
 ```
