@@ -1,0 +1,43 @@
+# Cloud Build config: builds api and web images in parallel, pushes to
+# Artifact Registry. Invoked from the monorepo root.
+#
+# Usage (from the repo root):
+#   gcloud builds submit \
+#     --config=cloudbuild.yaml \
+#     --region=southamerica-west1 \
+#     --substitutions=_TAG=v0.1.0
+#
+# Both Dockerfiles expect the build context to be the monorepo root,
+# which Cloud Build provides via `dir: '.'` (the default).
+
+substitutions:
+  _TAG: latest
+  _REGION: southamerica-west1
+  _REPO: lnf
+
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${_TAG}"
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web:${_TAG}"
+
+steps:
+  - id: build-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=apps/api/Dockerfile
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${_TAG}
+      - .
+    waitFor: ["-"]
+
+  - id: build-web
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=apps/web/Dockerfile
+      - --tag=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web:${_TAG}
+      - .
+    waitFor: ["-"]
