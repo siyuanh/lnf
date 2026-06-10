@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
 import { MintBatchRequest } from "@app/schemas";
 import type { Db } from "../db/client.js";
@@ -181,6 +181,64 @@ export function partnerSessionRouter(opts: PartnerSessionRouterOpts) {
     return c.json({ batches: rows });
   });
 
+  // Batch detail: paginated tags by code (the lex order matches the CSV).
+  // Cursor is the last code from the previous page; default page = 200 rows.
+  r.get("/batches/:id", async (c) => {
+    const partnerId = c.get("partnerId");
+    const batchId = c.req.param("id");
+    const cursor = c.req.query("cursor");
+    const limit = Math.min(Number(c.req.query("limit") ?? 200) || 200, 1000);
+
+    const batchRows = await opts.db
+      .select({
+        id: tagBatch.id,
+        size: tagBatch.size,
+        label: tagBatch.label,
+        createdAt: tagBatch.createdAt,
+        csvDownloadedAt: tagBatch.csvDownloadedAt,
+        partnerId: tagBatch.partnerId,
+      })
+      .from(tagBatch)
+      .where(eq(tagBatch.id, batchId))
+      .limit(1);
+    const batch = batchRows[0];
+    if (!batch || batch.partnerId !== partnerId) return c.json({ error: "not_found" }, 404);
+
+    const where = cursor
+      ? and(eq(tag.batchId, batchId), gt(tag.code, cursor))
+      : eq(tag.batchId, batchId);
+    const tagsRaw = await opts.db
+      .select({
+        code: tag.code,
+        state: tag.state,
+        activatedAt: tag.activatedAt,
+        deprecatedAt: tag.deprecatedAt,
+      })
+      .from(tag)
+      .where(where)
+      .orderBy(asc(tag.code))
+      .limit(limit + 1);
+    const hasMore = tagsRaw.length > limit;
+    const page = hasMore ? tagsRaw.slice(0, limit) : tagsRaw;
+    const tags = page.map((t) => ({
+      code: t.code,
+      state: t.state,
+      activatedAt: t.activatedAt ? t.activatedAt.toISOString() : null,
+      deprecatedAt: t.deprecatedAt ? t.deprecatedAt.toISOString() : null,
+    }));
+    return c.json({
+      batch: {
+        id: batch.id,
+        size: batch.size,
+        label: batch.label,
+        createdAt: batch.createdAt.toISOString(),
+        csvDownloadedAt: batch.csvDownloadedAt ? batch.csvDownloadedAt.toISOString() : null,
+      },
+      tags,
+      nextCursor: hasMore ? page[page.length - 1]!.code : null,
+    });
+  });
+
   r.post("/batches", zValidator("json", MintBatchRequest), async (c) => {
     const partnerId = c.get("partnerId");
     const input = c.req.valid("json");
@@ -188,15 +246,26 @@ export function partnerSessionRouter(opts: PartnerSessionRouterOpts) {
     return c.json(toMintResponse(result, input.size, "/api/partner", { includeCodes: true }), 201);
   });
 
+  // Session-authenticated CSV download. The single-use token gate exists for
+  // headless /api/partner-api callers; partners signed into the portal can
+  // re-download from history any time. Audit logged so revocations remain
+  // traceable.
   r.get("/batches/:id/codes.csv", async (c) => {
     const partnerId = c.get("partnerId");
     const batchId = c.req.param("id");
-    const tokenStr = c.req.query("token");
-    if (!tokenStr) return c.json({ error: "missing_token" }, 401);
-    const split = splitCsvToken(tokenStr);
-    if (!split || split.batchId !== batchId) return c.json({ error: "bad_token" }, 401);
-    const consumed = await consumeCsvToken(opts, partnerId, batchId, split.secret);
-    if (consumed.status !== 200) return c.json({ error: "unavailable" }, consumed.status);
+    const rows = await opts.db
+      .select({ partnerId: tagBatch.partnerId })
+      .from(tagBatch)
+      .where(eq(tagBatch.id, batchId))
+      .limit(1);
+    if (!rows[0] || rows[0].partnerId !== partnerId) return c.json({ error: "not_found" }, 404);
+    await opts.db.transaction(async (tx) => {
+      await logAuditEvent(tx, {
+        kind: "partner.batch.csv_redownloaded",
+        partnerId,
+        payload: { v: 1, batchId, partnerId },
+      });
+    });
     return streamBatchCsv(opts, batchId);
   });
 

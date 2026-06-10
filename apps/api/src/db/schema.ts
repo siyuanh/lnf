@@ -14,7 +14,11 @@ import {
 
 export const partnerStatus = pgEnum("partner_status", ["active", "suspended"]);
 export const partnerUserRole = pgEnum("partner_user_role", ["admin", "member"]);
-export const tagState = pgEnum("tag_state", ["unactivated", "active", "revoked"]);
+// Lifecycle: inactive (minted, not yet seen) → active (manufacturer scan flipped
+// it on the finder URL) → registered (caregiver paired the tag in the app) →
+// deprecated (retired). registered/deprecated transitions are stubbed — UI
+// surfaces them but no flow writes them yet.
+export const tagState = pgEnum("tag_state", ["inactive", "active", "registered", "deprecated"]);
 
 export const partner = pgTable("partner", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -79,12 +83,12 @@ export const tag = pgTable(
     code: text("code").notNull(),
     partnerId: uuid("partner_id").notNull().references(() => partner.id),
     batchId: uuid("batch_id").notNull().references(() => tagBatch.id),
-    state: tagState("state").notNull().default("unactivated"),
+    state: tagState("state").notNull().default("inactive"),
     protectedPersonId: uuid("protected_person_id"),
     caregiverId: uuid("caregiver_id"),
     label: text("label"),
     activatedAt: timestamp("activated_at", { withTimezone: true }),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    deprecatedAt: timestamp("deprecated_at", { withTimezone: true }),
   },
   (t) => [
     unique("tag_code_unique").on(t.code),

@@ -35,6 +35,7 @@ export default function BatchesPage() {
               <th align="left">{t("batches.colLabel")}</th>
               <th align="right">{t("batches.colSize")}</th>
               <th align="left">{t("batches.colCsv")}</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -44,6 +45,9 @@ export default function BatchesPage() {
                 <td>{b.label ?? t("batches.dash")}</td>
                 <td align="right">{b.size}</td>
                 <td>{b.csvDownloadedAt ? t("batches.csvDownloaded") : t("batches.csvPending")}</td>
+                <td>
+                  <Link href={`/partner/batches/${b.id}`}>{t("batches.view")}</Link>
+                </td>
               </tr>
             ))}
           </tbody>

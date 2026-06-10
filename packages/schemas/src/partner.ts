@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const MAX_BATCH_SIZE = 10_000;
 
+export const TagState = z.enum(["inactive", "active", "registered", "deprecated"]);
+export type TagState = z.infer<typeof TagState>;
+
 export const MintBatchRequest = z.object({
   size: z.number().int().positive().max(MAX_BATCH_SIZE),
   label: z.string().max(120).optional(),
@@ -20,3 +23,29 @@ export const MintBatchResponse = z.object({
   codes: z.array(z.string()).optional(),
 });
 export type MintBatchResponse = z.infer<typeof MintBatchResponse>;
+
+export const TagSummary = z.object({
+  code: z.string(),
+  state: TagState,
+  activatedAt: z.string().datetime().nullable(),
+  deprecatedAt: z.string().datetime().nullable(),
+});
+export type TagSummary = z.infer<typeof TagSummary>;
+
+export const BatchDetailResponse = z.object({
+  batch: z.object({
+    id: z.string().uuid(),
+    size: z.number().int().nonnegative(),
+    label: z.string().nullable(),
+    createdAt: z.string().datetime(),
+    csvDownloadedAt: z.string().datetime().nullable(),
+  }),
+  tags: z.array(TagSummary),
+  nextCursor: z.string().nullable(),
+});
+export type BatchDetailResponse = z.infer<typeof BatchDetailResponse>;
+
+export const PublicTagStateResponse = z.object({
+  state: TagState,
+});
+export type PublicTagStateResponse = z.infer<typeof PublicTagStateResponse>;

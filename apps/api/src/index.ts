@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { loadEnv } from "./env.js";
 import { makeDb } from "./db/client.js";
 import { partnerApiRouter, partnerSessionRouter } from "./routes/partner.js";
+import { publicTagRouter } from "./routes/public-tag.js";
 import { makeAuth } from "./auth/better-auth.js";
 
 const env = loadEnv();
@@ -25,6 +26,7 @@ export const app = new Hono()
   )
   .get("/api/healthz", (c) => c.json({ ok: true }))
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
+  .route("/api/public/tag", publicTagRouter({ db }))
   .route("/api/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
   .route(
     "/api/partner",
