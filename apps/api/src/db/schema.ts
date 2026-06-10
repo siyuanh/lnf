@@ -76,6 +76,29 @@ export const tagBatch = pgTable("tag_batch", {
   csvDownloadedAt: timestamp("csv_downloaded_at", { withTimezone: true }),
 });
 
+export const caregiver = pgTable("caregiver", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .unique("caregiver_user_id_unique")
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const protectedPerson = pgTable(
+  "protected_person",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
+    nickname: text("nickname").notNull(),
+    publicNote: text("public_note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("protected_person_caregiver_idx").on(t.caregiverId)],
+);
+
 export const tag = pgTable(
   "tag",
   {
@@ -84,8 +107,8 @@ export const tag = pgTable(
     partnerId: uuid("partner_id").notNull().references(() => partner.id),
     batchId: uuid("batch_id").notNull().references(() => tagBatch.id),
     state: tagState("state").notNull().default("inactive"),
-    protectedPersonId: uuid("protected_person_id"),
-    caregiverId: uuid("caregiver_id"),
+    protectedPersonId: uuid("protected_person_id").references(() => protectedPerson.id),
+    caregiverId: uuid("caregiver_id").references(() => caregiver.id),
     label: text("label"),
     activatedAt: timestamp("activated_at", { withTimezone: true }),
     deprecatedAt: timestamp("deprecated_at", { withTimezone: true }),
@@ -168,6 +191,8 @@ export const schema = {
   partnerApiKey,
   tagBatch,
   tag,
+  caregiver,
+  protectedPerson,
   auditEvent,
   user,
   account,

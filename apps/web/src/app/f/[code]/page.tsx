@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { getT } from "@/lib/i18n/server";
 import type { DictKey } from "@/lib/i18n/dict";
+import PairForm from "./PairForm";
 
 interface PageProps {
   params: Promise<{ code: string }>;
@@ -11,7 +13,9 @@ type TagState = "inactive" | "active" | "registered" | "deprecated";
 // form https://<domain>/f/<code>. Both the caregiver (with the LNF app
 // installed) and a finder (no app) hit this same URL. The first SSR hit on
 // an inactive tag flips it to 'active' on the API side — that's the
-// "manufacturer scanned the printed QR" signal.
+// "manufacturer scanned the printed QR" signal. If the visitor is a
+// signed-in caregiver and the tag is still pairable, we render the pair
+// form instead of the finder copy.
 async function lookupTagState(code: string): Promise<TagState | "not_found"> {
   const target = process.env.API_PROXY_TARGET ?? "http://localhost:3001";
   const res = await fetch(`${target}/api/public/tag/${encodeURIComponent(code)}`, {
@@ -21,6 +25,18 @@ async function lookupTagState(code: string): Promise<TagState | "not_found"> {
   if (!res.ok) return "not_found";
   const data = (await res.json()) as { state: TagState };
   return data.state;
+}
+
+async function isCaregiverSignedIn(): Promise<boolean> {
+  const target = process.env.API_PROXY_TARGET ?? "http://localhost:3001";
+  const h = await headers();
+  const cookie = h.get("cookie");
+  if (!cookie) return false;
+  const res = await fetch(`${target}/api/caregiver/me`, {
+    cache: "no-store",
+    headers: { cookie },
+  });
+  return res.ok;
 }
 
 // Map state → translation key pair. Deliberately reuse "this tag is new"
@@ -36,7 +52,16 @@ const COPY_FOR_STATE: Record<TagState, { title: DictKey; body: DictKey }> = {
 export default async function FinderPage({ params }: PageProps) {
   const { code } = await params;
   const { t } = await getT();
-  const state = await lookupTagState(code);
+  const [state, signedIn] = await Promise.all([
+    lookupTagState(code),
+    isCaregiverSignedIn(),
+  ]);
+
+  // Caregiver + pairable tag → pair flow. Otherwise finder copy.
+  if (signedIn && (state === "inactive" || state === "active")) {
+    return <PairForm code={code} />;
+  }
+
   // not_found falls through to the inactive copy — same "this tag is new"
   // wording avoids leaking that the code doesn't exist.
   const copy = COPY_FOR_STATE[state === "not_found" ? "inactive" : state];

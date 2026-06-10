@@ -4,6 +4,7 @@ import { loadEnv } from "./env.js";
 import { makeDb } from "./db/client.js";
 import { partnerApiRouter, partnerSessionRouter } from "./routes/partner.js";
 import { publicTagRouter } from "./routes/public-tag.js";
+import { caregiverSessionRouter } from "./routes/caregiver.js";
 import { makeAuth } from "./auth/better-auth.js";
 
 const env = loadEnv();
@@ -36,6 +37,7 @@ export const app = new Hono()
       auth,
       sessionMaxAgeSec: env.PARTNER_SESSION_MAX_AGE_SEC,
     }),
-  );
+  )
+  .route("/api/caregiver", caregiverSessionRouter({ db, auth }));
 
 export type AppType = typeof app;
