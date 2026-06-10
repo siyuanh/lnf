@@ -18,6 +18,9 @@ export const dict = {
     "login.submit": "Sign in",
     "login.submitting": "Signing in…",
     "login.failed": "sign in failed",
+    "login.expired": "Your session expired. Please sign in again.",
+
+    "header.logout": "Log out",
 
     "batches.title": "Batches",
     "batches.newBatch": "New batch",
@@ -67,6 +70,9 @@ export const dict = {
     "login.submit": "Iniciar sesión",
     "login.submitting": "Iniciando sesión…",
     "login.failed": "no se pudo iniciar sesión",
+    "login.expired": "Tu sesión expiró. Inicia sesión de nuevo.",
+
+    "header.logout": "Cerrar sesión",
 
     "batches.title": "Lotes",
     "batches.newBatch": "Nuevo lote",

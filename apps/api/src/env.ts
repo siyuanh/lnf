@@ -16,6 +16,11 @@ const EnvSchema = z.object({
   // ".example.com" so cookies set by api.example.com flow to app.example.com.
   // Leave unset for localhost dev (no cookie domain).
   COOKIE_DOMAIN: z.string().optional(),
+  // Inactivity timeout for partner portal sessions, in seconds. Behaves as a
+  // sliding window: any request within this many seconds of the last one
+  // extends the session; otherwise the cookie expires and the portal kicks
+  // back to /partner/login. Default 15 min.
+  PARTNER_SESSION_MAX_AGE_SEC: z.coerce.number().int().positive().default(900),
 });
 
 export type Env = z.infer<typeof EnvSchema> & { WEB_ORIGIN: string };

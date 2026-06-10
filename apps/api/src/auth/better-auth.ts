@@ -8,9 +8,14 @@ export interface AuthOpts {
   secret: string;
   baseUrl: string;
   cookieDomain?: string;
+  // Sliding inactivity window in seconds. Both the cookie max-age and the
+  // session DB row expire after this; any request within the window extends
+  // both. Defaults to 15 minutes for the partner portal.
+  sessionMaxAgeSec?: number;
 }
 
 export function makeAuth(opts: AuthOpts) {
+  const sessionMaxAge = opts.sessionMaxAgeSec ?? 60 * 15;
   return betterAuth({
     database: drizzleAdapter(opts.db, {
       provider: "pg",
@@ -24,7 +29,7 @@ export function makeAuth(opts: AuthOpts) {
     secret: opts.secret,
     baseURL: opts.baseUrl,
     emailAndPassword: { enabled: true, autoSignIn: true },
-    session: { expiresIn: 60 * 60 * 24 * 30 },
+    session: { expiresIn: sessionMaxAge, updateAge: sessionMaxAge },
     advanced: opts.cookieDomain
       ? {
           crossSubDomainCookies: { enabled: true, domain: opts.cookieDomain },

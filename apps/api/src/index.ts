@@ -12,6 +12,7 @@ const auth = makeAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseUrl: env.BETTER_AUTH_URL,
   cookieDomain: env.COOKIE_DOMAIN,
+  sessionMaxAgeSec: env.PARTNER_SESSION_MAX_AGE_SEC,
 });
 
 export const app = new Hono()
@@ -25,6 +26,14 @@ export const app = new Hono()
   .get("/api/healthz", (c) => c.json({ ok: true }))
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
-  .route("/api/partner", partnerSessionRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER, auth }));
+  .route(
+    "/api/partner",
+    partnerSessionRouter({
+      db,
+      pepper: env.PARTNER_API_KEY_PEPPER,
+      auth,
+      sessionMaxAgeSec: env.PARTNER_SESSION_MAX_AGE_SEC,
+    }),
+  );
 
 export type AppType = typeof app;

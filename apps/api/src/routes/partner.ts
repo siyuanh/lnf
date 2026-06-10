@@ -22,6 +22,7 @@ export interface PartnerRouterOpts {
 
 export interface PartnerSessionRouterOpts extends PartnerRouterOpts {
   auth: Auth;
+  sessionMaxAgeSec: number;
 }
 
 interface MintResult {
@@ -156,7 +157,13 @@ export function partnerApiRouter(opts: PartnerRouterOpts) {
 export function partnerSessionRouter(opts: PartnerSessionRouterOpts) {
   const r = new Hono().use("*", makePartnerSessionMiddleware({ db: opts.db, auth: opts.auth }));
 
-  r.get("/me", (c) => c.json({ partnerId: c.get("partnerId"), partnerUserId: c.get("partnerUserId") }));
+  r.get("/me", (c) =>
+    c.json({
+      partnerId: c.get("partnerId"),
+      partnerUserId: c.get("partnerUserId"),
+      sessionMaxAgeSec: opts.sessionMaxAgeSec,
+    }),
+  );
 
   r.get("/batches", async (c) => {
     const partnerId = c.get("partnerId");

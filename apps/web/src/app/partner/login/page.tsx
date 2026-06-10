@@ -1,16 +1,18 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useT } from "@/lib/i18n/use-t";
 
-export default function PartnerLoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const expired = params.get("expired") === "1";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,6 +30,11 @@ export default function PartnerLoginPage() {
   return (
     <main style={{ maxWidth: 360, margin: "64px auto", fontFamily: "system-ui" }}>
       <h1>{t("login.title")}</h1>
+      {expired && (
+        <p style={{ background: "#fff3cd", border: "1px solid #ffe69c", padding: 10, borderRadius: 4 }}>
+          {t("login.expired")}
+        </p>
+      )}
       <form onSubmit={onSubmit}>
         <label style={{ display: "block", marginBottom: 12 }}>
           {t("login.email")}
@@ -55,5 +62,14 @@ export default function PartnerLoginPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+export default function PartnerLoginPage() {
+  // useSearchParams() requires a Suspense boundary in Next.js 15's app router.
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -59,4 +59,17 @@ describe("loadEnv", () => {
     } as NodeJS.ProcessEnv);
     expect(env.WEB_ORIGIN).toBe("https://portal.example.com");
   });
+
+  it("PARTNER_SESSION_MAX_AGE_SEC defaults to 900 and is overridable", () => {
+    const base = {
+      ...VALID_BASE,
+      NODE_ENV: "development",
+      BETTER_AUTH_SECRET: "real-secret-thats-long-enough-yes-yes",
+      PARTNER_API_KEY_PEPPER: "real-pepper-thats-long-enough-yes-yes",
+    } as NodeJS.ProcessEnv;
+    expect(loadEnv(base).PARTNER_SESSION_MAX_AGE_SEC).toBe(900);
+    expect(loadEnv({ ...base, PARTNER_SESSION_MAX_AGE_SEC: "60" } as NodeJS.ProcessEnv).PARTNER_SESSION_MAX_AGE_SEC).toBe(
+      60,
+    );
+  });
 });
