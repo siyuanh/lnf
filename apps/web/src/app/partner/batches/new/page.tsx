@@ -1,14 +1,86 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import QRCode from "qrcode";
+import JSZip from "jszip";
+
+interface MintResponse {
+  batchId: string;
+  size: number;
+  downloadUrl: string;
+  expiresAt: string;
+  codes?: string[];
+}
+
+const PREVIEW_CAP = 100;
+const QR_PIXEL_SIZE = 256;
+
+function urlForCode(code: string): string {
+  // Per requirements §5.3: the QR encodes https://<domain>/f/<code>.
+  // Same origin as the portal — partners scan the printed QR with any
+  // phone, browser opens this same site, and the /f/[code] route decides
+  // what to render.
+  return `${window.location.origin}/f/${code}`;
+}
+
+async function generateZip(label: string, batchId: string, codes: string[]): Promise<Blob> {
+  const zip = new JSZip();
+  zip.file("codes.csv", codes.join("\n") + "\n");
+  zip.file("README.txt", `Batch ${batchId}\n${codes.length} codes\nLabel: ${label || "(none)"}\n`);
+  const qrFolder = zip.folder("qr")!;
+  // PNGs sequentially to keep memory bounded — 10k codes × ~1KB ≈ 10MB,
+  // generating them all in parallel can spike past that on mobile.
+  for (const code of codes) {
+    const png = await QRCode.toBuffer(urlForCode(code), {
+      type: "png",
+      width: QR_PIXEL_SIZE,
+      margin: 1,
+      errorCorrectionLevel: "M",
+    });
+    qrFolder.file(`${code}.png`, png);
+  }
+  return zip.generateAsync({ type: "blob" });
+}
+
+function downloadBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function QrPreview({ code }: { code: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  // Render once per code; toDataURL is fast enough that we don't need
+  // memoization for a 100-item grid.
+  if (src === null) {
+    QRCode.toDataURL(urlForCode(code), { width: 128, margin: 1, errorCorrectionLevel: "M" }).then(setSrc);
+  }
+  return (
+    <figure style={{ margin: 0, textAlign: "center" }}>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={code} width={128} height={128} style={{ display: "block" }} />
+      ) : (
+        <div style={{ width: 128, height: 128, background: "#f0f0f0" }} />
+      )}
+      <figcaption style={{ fontSize: 11, fontFamily: "monospace", marginTop: 4 }}>{code}</figcaption>
+    </figure>
+  );
+}
 
 export default function NewBatchPage() {
   const router = useRouter();
   const [size, setSize] = useState(100);
   const [label, setLabel] = useState("");
-  const [result, setResult] = useState<{ batchId: string; downloadUrl: string } | null>(null);
+  const [result, setResult] = useState<MintResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [zipping, setZipping] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,18 +100,58 @@ export default function NewBatchPage() {
     setResult(await res.json());
   }
 
-  if (result) {
+  async function onDownloadZip() {
+    if (!result?.codes) return;
+    setZipping(true);
+    try {
+      const blob = await generateZip(label, result.batchId, result.codes);
+      const stem = label.replace(/[^a-zA-Z0-9_-]+/g, "-") || result.batchId;
+      downloadBlob(blob, `${stem}.zip`);
+    } finally {
+      setZipping(false);
+    }
+  }
+
+  if (result && result.codes) {
+    const previewCodes = result.codes.slice(0, PREVIEW_CAP);
+    const overflow = result.codes.length - previewCodes.length;
     return (
-      <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui" }}>
+      <main style={{ maxWidth: 960, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
         <h1>Batch created</h1>
         <p>
-          Batch ID: <code>{result.batchId}</code>
+          Batch ID: <code>{result.batchId}</code> &middot; {result.size} codes
         </p>
-        <p style={{ color: "crimson" }}>The CSV is single-use. Download it now and store it safely.</p>
-        <a href={result.downloadUrl} download>
-          Download CSV
-        </a>
-        <p>
+        <p style={{ color: "crimson" }}>These codes are shown once. Download the zip now and store it safely.</p>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 24 }}>
+          <button onClick={onDownloadZip} disabled={zipping}>
+            {zipping ? "Building zip…" : "Download zip (CSV + PNGs)"}
+          </button>
+          <a href={result.downloadUrl} download style={{ fontSize: 14 }}>
+            CSV only (single-use link)
+          </a>
+        </div>
+
+        <h2 style={{ fontSize: 16 }}>
+          Preview {previewCodes.length < result.codes.length ? `(first ${previewCodes.length} of ${result.size})` : ""}
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+            gap: 16,
+            marginTop: 12,
+          }}
+        >
+          {previewCodes.map((c) => (
+            <QrPreview key={c} code={c} />
+          ))}
+        </div>
+        {overflow > 0 && (
+          <p style={{ marginTop: 16, color: "#666", fontSize: 13 }}>
+            …and {overflow} more in the zip download.
+          </p>
+        )}
+        <p style={{ marginTop: 24 }}>
           <button onClick={() => router.push("/partner/batches")}>Back to list</button>
         </p>
       </main>

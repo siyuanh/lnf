@@ -31,6 +31,12 @@ exports[`contracts (privacy boundaries) > MintBatchResponse 1`] = `
       "format": "uuid",
       "type": "string",
     },
+    "codes": {
+      "items": {
+        "type": "string",
+      },
+      "type": "array",
+    },
     "downloadUrl": {
       "type": "string",
     },

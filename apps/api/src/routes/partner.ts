@@ -26,6 +26,7 @@ export interface PartnerSessionRouterOpts extends PartnerRouterOpts {
 
 interface MintResult {
   batchId: string;
+  codes: string[];
   token: string;
   expiresAt: Date;
 }
@@ -61,17 +62,23 @@ async function mintBatch(opts: PartnerRouterOpts, partnerId: string, input: Mint
       partnerId,
       payload: { v: 1, batchId: batch!.id, partnerId, size: input.size, label: input.label ?? null },
     });
-    return { batchId: batch!.id, token: minted.token, expiresAt };
+    return { batchId: batch!.id, codes, token: minted.token, expiresAt };
   });
 }
 
-function toMintResponse(result: MintResult, size: number, urlPrefix: string) {
-  return {
+function toMintResponse(
+  result: MintResult,
+  size: number,
+  urlPrefix: string,
+  opts: { includeCodes: boolean },
+) {
+  const base = {
     batchId: result.batchId,
     size,
     downloadUrl: `${urlPrefix}/batches/${result.batchId}/codes.csv?token=${result.token}`,
     expiresAt: result.expiresAt.toISOString(),
   };
+  return opts.includeCodes ? { ...base, codes: result.codes } : base;
 }
 
 async function consumeCsvToken(opts: PartnerRouterOpts, partnerId: string, batchId: string, secret: string) {
@@ -128,7 +135,7 @@ export function partnerApiRouter(opts: PartnerRouterOpts) {
     const partnerId = c.get("partnerId");
     const input = c.req.valid("json");
     const result = await mintBatch(opts, partnerId, input);
-    return c.json(toMintResponse(result, input.size, "/api/partner-api"), 201);
+    return c.json(toMintResponse(result, input.size, "/api/partner-api", { includeCodes: false }), 201);
   });
 
   r.get("/batches/:id/codes.csv", async (c) => {
@@ -171,7 +178,7 @@ export function partnerSessionRouter(opts: PartnerSessionRouterOpts) {
     const partnerId = c.get("partnerId");
     const input = c.req.valid("json");
     const result = await mintBatch(opts, partnerId, input);
-    return c.json(toMintResponse(result, input.size, "/api/partner"), 201);
+    return c.json(toMintResponse(result, input.size, "/api/partner", { includeCodes: true }), 201);
   });
 
   r.get("/batches/:id/codes.csv", async (c) => {
