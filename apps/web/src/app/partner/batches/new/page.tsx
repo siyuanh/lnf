@@ -55,7 +55,7 @@ export default function NewBatchPage() {
           <input
             type="number"
             min={1}
-            max={100_000}
+            max={10_000}
             value={size}
             onChange={(e) => setSize(Number(e.target.value))}
             required

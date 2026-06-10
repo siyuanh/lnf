@@ -41,10 +41,10 @@ describe("POST /api/partner-api/batches", () => {
     expect(res.status).toBe(401);
   });
 
-  it("rejects size > 100000", async () => {
+  it("rejects size > 10000", async () => {
     const res = await app.request("/api/partner-api/batches", {
       method: "POST",
-      body: JSON.stringify({ size: 100_001 }),
+      body: JSON.stringify({ size: 10_001 }),
       headers: { "content-type": "application/json", authorization: `Bearer ${presented}` },
     });
     expect(res.status).toBe(400);
