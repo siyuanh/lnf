@@ -1,18 +1,10 @@
 "use client";
-import { LOCALE_COOKIE, DEFAULT_LOCALE, type Locale, LOCALES, tFor, type DictKey } from "./dict";
+import { tFor, type DictKey } from "./dict";
+import { useLocale } from "./provider";
 
-function readLocale(): Locale {
-  if (typeof document === "undefined") return DEFAULT_LOCALE;
-  // Cookie format: "lnf_locale=es; ...". Plain split is enough — the cookie
-  // value is "en" or "es", no escaping concerns.
-  const m = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]+)`));
-  const v = m?.[1];
-  return v && (LOCALES as readonly string[]).includes(v) ? (v as Locale) : DEFAULT_LOCALE;
-}
-
-// Client-side translator. Reads the cookie once per render — fine for a
-// portal where the locale only changes via a full page reload from
-// LangSwitcher.
+// Client-side translator. Locale comes from a React Context populated by the
+// server's getLocale() — see provider.tsx for the rationale (avoids SSR/CSR
+// hydration mismatch).
 export function useT(): (key: DictKey, vars?: Record<string, string | number>) => string {
-  return tFor(readLocale());
+  return tFor(useLocale());
 }
