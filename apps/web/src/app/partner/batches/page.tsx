@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n/use-t";
 
 interface Batch {
   id: string;
@@ -11,6 +12,7 @@ interface Batch {
 }
 
 export default function BatchesPage() {
+  const t = useT();
   const [batches, setBatches] = useState<Batch[] | null>(null);
   useEffect(() => {
     fetch(`/api/partner/batches`, { credentials: "include" })
@@ -20,28 +22,28 @@ export default function BatchesPage() {
   return (
     <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Batches</h1>
-        <Link href="/partner/batches/new">New batch</Link>
+        <h1>{t("batches.title")}</h1>
+        <Link href="/partner/batches/new">{t("batches.newBatch")}</Link>
       </header>
-      {batches === null && <p>Loading…</p>}
-      {batches !== null && batches.length === 0 && <p>No batches yet.</p>}
+      {batches === null && <p>{t("batches.loading")}</p>}
+      {batches !== null && batches.length === 0 && <p>{t("batches.empty")}</p>}
       {batches !== null && batches.length > 0 && (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th align="left">Created</th>
-              <th align="left">Label</th>
-              <th align="right">Size</th>
-              <th align="left">CSV</th>
+              <th align="left">{t("batches.colCreated")}</th>
+              <th align="left">{t("batches.colLabel")}</th>
+              <th align="right">{t("batches.colSize")}</th>
+              <th align="left">{t("batches.colCsv")}</th>
             </tr>
           </thead>
           <tbody>
             {batches.map((b) => (
               <tr key={b.id}>
                 <td>{new Date(b.createdAt).toLocaleString()}</td>
-                <td>{b.label ?? "—"}</td>
+                <td>{b.label ?? t("batches.dash")}</td>
                 <td align="right">{b.size}</td>
-                <td>{b.csvDownloadedAt ? "downloaded" : "pending"}</td>
+                <td>{b.csvDownloadedAt ? t("batches.csvDownloaded") : t("batches.csvPending")}</td>
               </tr>
             ))}
           </tbody>

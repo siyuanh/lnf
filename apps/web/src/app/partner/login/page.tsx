@@ -2,9 +2,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/use-t";
 
 export default function PartnerLoginPage() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export default function PartnerLoginPage() {
     const res = await authClient.signIn.email({ email, password });
     setLoading(false);
     if (res.error) {
-      setError(res.error.message ?? "sign in failed");
+      setError(res.error.message ?? t("login.failed"));
       return;
     }
     router.push("/partner/batches");
@@ -25,10 +27,10 @@ export default function PartnerLoginPage() {
 
   return (
     <main style={{ maxWidth: 360, margin: "64px auto", fontFamily: "system-ui" }}>
-      <h1>Partner login</h1>
+      <h1>{t("login.title")}</h1>
       <form onSubmit={onSubmit}>
         <label style={{ display: "block", marginBottom: 12 }}>
-          Email
+          {t("login.email")}
           <input
             type="email"
             value={email}
@@ -38,7 +40,7 @@ export default function PartnerLoginPage() {
           />
         </label>
         <label style={{ display: "block", marginBottom: 12 }}>
-          Password
+          {t("login.password")}
           <input
             type="password"
             value={password}
@@ -49,7 +51,7 @@ export default function PartnerLoginPage() {
         </label>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
         <button type="submit" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? t("login.submitting") : t("login.submit")}
         </button>
       </form>
     </main>

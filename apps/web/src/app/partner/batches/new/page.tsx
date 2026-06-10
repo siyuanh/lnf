@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import JSZip from "jszip";
+import { useT } from "@/lib/i18n/use-t";
 
 interface MintResponse {
   batchId: string;
@@ -75,6 +76,7 @@ function QrPreview({ code }: { code: string }) {
 
 export default function NewBatchPage() {
   const router = useRouter();
+  const t = useT();
   const [size, setSize] = useState(100);
   const [label, setLabel] = useState("");
   const [result, setResult] = useState<MintResponse | null>(null);
@@ -94,7 +96,7 @@ export default function NewBatchPage() {
     });
     setBusy(false);
     if (!res.ok) {
-      setError(`status ${res.status}`);
+      setError(`${t("newBatch.statusError")} ${res.status}`);
       return;
     }
     setResult(await res.json());
@@ -117,22 +119,25 @@ export default function NewBatchPage() {
     const overflow = result.codes.length - previewCodes.length;
     return (
       <main style={{ maxWidth: 960, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-        <h1>Batch created</h1>
+        <h1>{t("newBatch.created")}</h1>
         <p>
-          Batch ID: <code>{result.batchId}</code> &middot; {result.size} codes
+          {t("newBatch.batchId")}: <code>{result.batchId}</code> &middot; {t("newBatch.codeCount", { n: result.size })}
         </p>
-        <p style={{ color: "crimson" }}>These codes are shown once. Download the zip now and store it safely.</p>
+        <p style={{ color: "crimson" }}>{t("newBatch.warning")}</p>
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 24 }}>
           <button onClick={onDownloadZip} disabled={zipping}>
-            {zipping ? "Building zip…" : "Download zip (CSV + PNGs)"}
+            {zipping ? t("newBatch.buildingZip") : t("newBatch.downloadZip")}
           </button>
           <a href={result.downloadUrl} download style={{ fontSize: 14 }}>
-            CSV only (single-use link)
+            {t("newBatch.csvOnly")}
           </a>
         </div>
 
         <h2 style={{ fontSize: 16 }}>
-          Preview {previewCodes.length < result.codes.length ? `(first ${previewCodes.length} of ${result.size})` : ""}
+          {t("newBatch.preview")}{" "}
+          {previewCodes.length < result.codes.length
+            ? t("newBatch.previewSubset", { shown: previewCodes.length, total: result.size })
+            : ""}
         </h2>
         <div
           style={{
@@ -148,11 +153,11 @@ export default function NewBatchPage() {
         </div>
         {overflow > 0 && (
           <p style={{ marginTop: 16, color: "#666", fontSize: 13 }}>
-            …and {overflow} more in the zip download.
+            {t("newBatch.overflow", { n: overflow })}
           </p>
         )}
         <p style={{ marginTop: 24 }}>
-          <button onClick={() => router.push("/partner/batches")}>Back to list</button>
+          <button onClick={() => router.push("/partner/batches")}>{t("newBatch.back")}</button>
         </p>
       </main>
     );
@@ -160,10 +165,10 @@ export default function NewBatchPage() {
 
   return (
     <main style={{ maxWidth: 480, margin: "32px auto", fontFamily: "system-ui" }}>
-      <h1>New batch</h1>
+      <h1>{t("newBatch.title")}</h1>
       <form onSubmit={onSubmit}>
         <label style={{ display: "block", marginBottom: 12 }}>
-          Size
+          {t("newBatch.size")}
           <input
             type="number"
             min={1}
@@ -175,7 +180,7 @@ export default function NewBatchPage() {
           />
         </label>
         <label style={{ display: "block", marginBottom: 12 }}>
-          Label (optional)
+          {t("newBatch.label")}
           <input
             type="text"
             maxLength={120}
@@ -186,7 +191,7 @@ export default function NewBatchPage() {
         </label>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
         <button type="submit" disabled={busy}>
-          {busy ? "Minting…" : "Mint batch"}
+          {busy ? t("newBatch.submitting") : t("newBatch.submit")}
         </button>
       </form>
     </main>

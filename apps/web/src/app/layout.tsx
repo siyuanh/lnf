@@ -1,9 +1,16 @@
+import { LangSwitcher } from "@/components/LangSwitcher";
+import { getLocale } from "@/lib/i18n/server";
+
 export const metadata = { title: "LNF" };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang={locale}>
+      <body>
+        <LangSwitcher current={locale} />
+        {children}
+      </body>
     </html>
   );
 }
