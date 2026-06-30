@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getT } from "@/lib/i18n/server";
 import type { DictKey } from "@/lib/i18n/dict";
 import PairForm from "./PairForm";
+import FinderForm from "./FinderForm";
 
 interface PageProps {
   params: Promise<{ code: string }>;
@@ -60,6 +61,14 @@ export default async function FinderPage({ params }: PageProps) {
   // Caregiver + pairable tag → pair flow. Otherwise finder copy.
   if (signedIn && (state === "inactive" || state === "active")) {
     return <PairForm code={code} />;
+  }
+
+  // Registered tag + not the caregiver → finder report form (§5.4 / UC-2).
+  // A signed-in caregiver still sees the informational copy here; we don't
+  // verify ownership of *this specific* tag, but rendering a "report a find"
+  // form to the caregiver themselves would be the wrong affordance.
+  if (state === "registered" && !signedIn) {
+    return <FinderForm code={code} />;
   }
 
   // not_found falls through to the inactive copy — same "this tag is new"

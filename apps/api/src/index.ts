@@ -27,7 +27,7 @@ export const app = new Hono()
   )
   .get("/api/healthz", (c) => c.json({ ok: true }))
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
-  .route("/api/public/tag", publicTagRouter({ db }))
+  .route("/api/public/tag", publicTagRouter({ db, fingerprintSalt: env.PARTNER_API_KEY_PEPPER }))
   .route("/api/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
   .route(
     "/api/partner",

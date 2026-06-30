@@ -19,6 +19,7 @@ export const partnerUserRole = pgEnum("partner_user_role", ["admin", "member"]);
 // deprecated (retired). registered/deprecated transitions are stubbed — UI
 // surfaces them but no flow writes them yet.
 export const tagState = pgEnum("tag_state", ["inactive", "active", "registered", "deprecated"]);
+export const findLocationKind = pgEnum("find_location_kind", ["gps", "address"]);
 
 export const partner = pgTable("partner", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -119,6 +120,32 @@ export const tag = pgTable(
   ],
 );
 
+// find: a stranger's report on a registered tag. Created unauthenticated from
+// /f/<code>; per requirements §5.4 the finder may submit either GPS or a typed
+// address (never both). Personal contact + message are optional and free-form.
+export const find = pgTable(
+  "find",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tagId: uuid("tag_id").notNull().references(() => tag.id),
+    locationKind: findLocationKind("location_kind").notNull(),
+    // GPS path: latitude/longitude are stored as text to avoid precision drift
+    // and to keep ourselves free of PostGIS for v1; accuracy in meters.
+    lat: text("lat"),
+    lon: text("lon"),
+    accuracyM: integer("accuracy_m"),
+    // Address path: free text typed by the finder.
+    addressText: text("address_text"),
+    finderMessage: text("finder_message"),
+    finderContact: text("finder_contact"),
+    // SHA-256 of finder IP + a server-side salt; used by §5.7 false-positive
+    // throttling. Stored opaque so nothing reverses to an IP.
+    finderFingerprint: text("finder_fingerprint"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("find_tag_idx").on(t.tagId, t.createdAt)],
+);
+
 /**
  * audit_event is intentionally a flat log with NO foreign keys on caregiver_id /
  * partner_id / find_id. Audit must outlive subject deletion: under LGPD an
@@ -193,6 +220,7 @@ export const schema = {
   tag,
   caregiver,
   protectedPerson,
+  find,
   auditEvent,
   user,
   account,

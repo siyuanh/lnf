@@ -3,6 +3,7 @@ import {
   account,
   auditEvent,
   caregiver,
+  find,
   partner,
   partnerApiKey,
   protectedPerson,
@@ -41,4 +42,16 @@ export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string,
   await db.delete(account);
   await db.delete(verification);
   await db.delete(user);
+}
+
+/**
+ * Clear find table + all its FK dependencies in safe order.
+ */
+export async function resetFindTables(db: PostgresJsDatabase<Record<string, never>>) {
+  await db.delete(auditEvent);
+  await db.delete(find);
+  await db.delete(tag);
+  await db.delete(tagBatch);
+  await db.delete(partnerApiKey);
+  await db.delete(partner);
 }

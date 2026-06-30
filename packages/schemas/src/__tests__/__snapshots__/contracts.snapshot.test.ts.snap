@@ -1,5 +1,130 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`contracts (privacy boundaries) > FindCreatedV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "findId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "locationKind": {
+      "enum": [
+        "gps",
+        "address",
+      ],
+      "type": "string",
+    },
+    "tagCode": {
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "findId",
+    "tagCode",
+    "locationKind",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > FindSubmitRequest 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "contact": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string",
+    },
+    "location": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "accuracyM": {
+              "minimum": 0,
+              "type": "number",
+            },
+            "kind": {
+              "const": "gps",
+              "type": "string",
+            },
+            "lat": {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number",
+            },
+            "lon": {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number",
+            },
+          },
+          "required": [
+            "kind",
+            "lat",
+            "lon",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "address",
+              "type": "string",
+            },
+            "text": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string",
+            },
+          },
+          "required": [
+            "kind",
+            "text",
+          ],
+          "type": "object",
+        },
+      ],
+    },
+    "message": {
+      "maxLength": 200,
+      "type": "string",
+    },
+  },
+  "required": [
+    "location",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > FindSubmitResponse 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "findId": {
+      "format": "uuid",
+      "type": "string",
+    },
+  },
+  "required": [
+    "findId",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`contracts (privacy boundaries) > MintBatchRequest 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
