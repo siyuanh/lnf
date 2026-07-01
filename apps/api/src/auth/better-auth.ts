@@ -8,6 +8,11 @@ export interface AuthOpts {
   secret: string;
   baseUrl: string;
   cookieDomain?: string;
+  // Extra origins Better-Auth should accept on cookie-bearing requests (its
+  // CSRF origin check). baseUrl is always trusted; add others here when the
+  // service answers on more than one hostname — e.g. Cloud Run exposes both a
+  // project-number URL and a hash URL for the same service.
+  trustedOrigins?: string[];
   // Sliding inactivity window in seconds. Both the cookie max-age and the
   // session DB row expire after this; any request within the window extends
   // both. Defaults to 15 minutes for the partner portal.
@@ -43,6 +48,10 @@ export function makeAuth(opts: AuthOpts) {
     }),
     secret: opts.secret,
     baseURL: opts.baseUrl,
+    // baseURL is trusted implicitly; merge any extra hostnames the service
+    // also answers on so a cookie set under one origin isn't rejected under
+    // another. De-duped to keep the list clean.
+    trustedOrigins: Array.from(new Set([opts.baseUrl, ...(opts.trustedOrigins ?? [])])),
     // requireEmailVerification stays off: we don't want signup to hard-block
     // on an unclicked link (there's no mail provider wired). The verification
     // link is sent on signup so real deployments can flip this true later

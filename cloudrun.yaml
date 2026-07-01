@@ -71,6 +71,11 @@ spec:
               value: __PUBLIC_URL__
             - name: WEB_ORIGIN
               value: __PUBLIC_URL__
+            # Cloud Run answers on two hostnames for one service (project-number
+            # URL and hash URL). Trust both so a cookie set under one origin
+            # isn't rejected as "Invalid origin" when loaded under the other.
+            - name: AUTH_TRUSTED_ORIGINS
+              value: __TRUSTED_ORIGINS__
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:

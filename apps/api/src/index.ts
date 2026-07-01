@@ -15,6 +15,9 @@ const auth = makeAuth({
   baseUrl: env.BETTER_AUTH_URL,
   cookieDomain: env.COOKIE_DOMAIN,
   sessionMaxAgeSec: env.PARTNER_SESSION_MAX_AGE_SEC,
+  trustedOrigins: env.AUTH_TRUSTED_ORIGINS
+    ? env.AUTH_TRUSTED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+    : undefined,
 });
 
 export const app = new Hono()

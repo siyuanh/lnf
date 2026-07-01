@@ -12,6 +12,11 @@ const EnvSchema = z.object({
   // /partner/*. Defaults to BETTER_AUTH_URL for the common case where the
   // portal and the auth callback share an origin; split when they diverge.
   WEB_ORIGIN: z.string().url().optional(),
+  // Comma-separated extra origins to trust for Better-Auth's CSRF origin check,
+  // beyond BETTER_AUTH_URL. Needed when the service answers on more than one
+  // hostname — e.g. Cloud Run's project-number URL AND its hash URL both point
+  // at the same service, and the browser may load either.
+  AUTH_TRUSTED_ORIGINS: z.string().optional(),
   // Cookie domain for cross-subdomain Better-Auth sessions in prod, e.g.
   // ".example.com" so cookies set by api.example.com flow to app.example.com.
   // Leave unset for localhost dev (no cookie domain).
