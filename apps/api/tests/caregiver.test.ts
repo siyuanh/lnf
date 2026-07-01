@@ -192,4 +192,81 @@ describe("caregiver router", () => {
     const body = (await res.json()) as { error: string };
     expect(body.error).toBe("contact_not_found");
   });
+
+  // Helper: sign up, add a contact, seed a tag, and pair it. Returns the
+  // caregiver cookie, the tag code, and the contact id.
+  async function pairedTag(email: string, code: string) {
+    const cookie = await signupAndCookie(app, email);
+    const contactRes = await app.request("/api/caregiver/contacts", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ kind: "phone", label: "Mobile", value: "+525512345678" }),
+    });
+    const contact = (await contactRes.json()) as { id: string };
+    const [p] = await db.insert(partner).values({ name: `P-${code}`, billingEmail: "x@y.test" }).returning();
+    const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
+    await db.insert(tag).values({ code, partnerId: p!.id, batchId: b!.id, state: "active" });
+    const pair = await app.request(`/api/caregiver/tags/${code}/pair`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ contactId: contact.id, label: "blue jacket" }),
+    });
+    expect(pair.status).toBe(200);
+    return { cookie, code, contactId: contact.id };
+  }
+
+  it("lists registered tags with their linked contact", async () => {
+    const { cookie, code, contactId } = await pairedTag("taglist@example.com", "LISTCODE1");
+    const res = await app.request("/api/caregiver/tags", { headers: { cookie } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      tags: { code: string; label: string | null; state: string; contact: { id: string; value: string } | null }[];
+    };
+    expect(body.tags).toHaveLength(1);
+    const t0 = body.tags[0]!;
+    expect(t0.code).toBe(code);
+    expect(t0.label).toBe("blue jacket");
+    expect(t0.state).toBe("registered");
+    expect(t0.contact?.id).toBe(contactId);
+    expect(t0.contact?.value).toBe("+525512345678");
+  });
+
+  it("does not list another caregiver's tags", async () => {
+    await pairedTag("owner@example.com", "OWNEDCODE");
+    const otherCookie = await signupAndCookie(app, "intruder@example.com");
+    const res = await app.request("/api/caregiver/tags", { headers: { cookie: otherCookie } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { tags: unknown[] };
+    expect(body.tags).toHaveLength(0);
+  });
+
+  it("returns tag detail with full contact for the owner", async () => {
+    const { cookie, code, contactId } = await pairedTag("tagdetail@example.com", "DETAILCODE");
+    const res = await app.request(`/api/caregiver/tags/${code}`, { headers: { cookie } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      code: string;
+      label: string | null;
+      state: string;
+      contact: { id: string; kind: string; label: string | null; value: string; createdAt: string } | null;
+    };
+    expect(body.code).toBe(code);
+    expect(body.label).toBe("blue jacket");
+    expect(body.contact?.id).toBe(contactId);
+    expect(body.contact?.kind).toBe("phone");
+    expect(body.contact?.label).toBe("Mobile");
+    expect(body.contact?.createdAt).toBeTruthy();
+  });
+
+  it("returns 404 on tag detail for a tag the caller doesn't own", async () => {
+    await pairedTag("detailowner@example.com", "PRIVATECODE");
+    const otherCookie = await signupAndCookie(app, "peeker@example.com");
+    const res = await app.request("/api/caregiver/tags/PRIVATECODE", { headers: { cookie: otherCookie } });
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects tag list without a session", async () => {
+    const res = await app.request("/api/caregiver/tags");
+    expect(res.status).toBe(401);
+  });
 });

@@ -111,8 +111,8 @@ export default function ContactsPage() {
     <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <h1>{t("contacts.title")}</h1>
-        <Link href="/caregiver/people" style={{ fontSize: 13 }}>
-          {t("contacts.linkToPeople")}
+        <Link href="/caregiver/tags" style={{ fontSize: 13 }}>
+          {t("tags.title")}
         </Link>
       </div>
       <p style={{ color: "#555", fontSize: 14 }}>{t("contacts.subtitle")}</p>

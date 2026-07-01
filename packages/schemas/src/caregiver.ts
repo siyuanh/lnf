@@ -101,6 +101,42 @@ export const ContactUpdateRequest = z.object({
 });
 export type ContactUpdateRequest = z.infer<typeof ContactUpdateRequest>;
 
+// A tag the caregiver has registered, as shown in their tag list. Carries a
+// compact snapshot of the linked contact so the list renders without an extra
+// per-row fetch. `registeredAt` is the tag's activation timestamp.
+export const RegisteredTagSummary = z.object({
+  code: z.string(),
+  label: z.string().nullable(),
+  state: TagState,
+  contact: z
+    .object({
+      id: z.string().uuid(),
+      kind: ContactKind,
+      label: z.string().nullable(),
+      value: z.string(),
+    })
+    .nullable(),
+  registeredAt: z.string().datetime().nullable(),
+});
+export type RegisteredTagSummary = z.infer<typeof RegisteredTagSummary>;
+
+export const RegisteredTagListResponse = z.object({
+  tags: z.array(RegisteredTagSummary),
+});
+export type RegisteredTagListResponse = z.infer<typeof RegisteredTagListResponse>;
+
+// Full detail for one registered tag: the tag fields plus the complete linked
+// contact (with created/updated timestamps). Contact may be null if the tag
+// was registered under the legacy protected-person model and never re-paired.
+export const TagDetailResponse = z.object({
+  code: z.string(),
+  label: z.string().nullable(),
+  state: TagState,
+  registeredAt: z.string().datetime().nullable(),
+  contact: Contact.nullable(),
+});
+export type TagDetailResponse = z.infer<typeof TagDetailResponse>;
+
 // Optional phone captured at signup time. Same lenient pattern as contacts.
 export const SignupPhone = z.string().regex(phonePattern);
 export type SignupPhone = z.infer<typeof SignupPhone>;

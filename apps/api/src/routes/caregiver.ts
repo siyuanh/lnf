@@ -155,6 +155,87 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
     });
   });
 
+  // List the tags this caregiver has registered. Left-joins the linked contact
+  // so the list renders in one round trip. Scoped to caregiverId — a caregiver
+  // only ever sees tags they own.
+  r.get("/tags", async (c) => {
+    const caregiverId = c.get("caregiverId");
+    const rows = await opts.db
+      .select({
+        code: tag.code,
+        label: tag.label,
+        state: tag.state,
+        activatedAt: tag.activatedAt,
+        contactId: caregiverContact.id,
+        contactKind: caregiverContact.kind,
+        contactLabel: caregiverContact.label,
+        contactValue: caregiverContact.value,
+      })
+      .from(tag)
+      .leftJoin(caregiverContact, eq(tag.contactId, caregiverContact.id))
+      .where(and(eq(tag.caregiverId, caregiverId), eq(tag.state, "registered")))
+      .orderBy(sql`${tag.activatedAt} desc nulls last`);
+    return c.json({
+      tags: rows.map((t) => ({
+        code: t.code,
+        label: t.label,
+        state: t.state,
+        registeredAt: t.activatedAt ? t.activatedAt.toISOString() : null,
+        contact: t.contactId
+          ? {
+              id: t.contactId,
+              kind: t.contactKind!,
+              label: t.contactLabel,
+              value: t.contactValue!,
+            }
+          : null,
+      })),
+    });
+  });
+
+  // Detail for one registered tag the caregiver owns. Returns the tag plus its
+  // full linked contact. 404 (not 403) when the tag isn't owned by the caller,
+  // so tag existence isn't leaked across caregivers.
+  r.get("/tags/:code", async (c) => {
+    const caregiverId = c.get("caregiverId");
+    const code = c.req.param("code");
+    const rows = await opts.db
+      .select({
+        code: tag.code,
+        label: tag.label,
+        state: tag.state,
+        activatedAt: tag.activatedAt,
+        contactId: caregiverContact.id,
+        contactKind: caregiverContact.kind,
+        contactLabel: caregiverContact.label,
+        contactValue: caregiverContact.value,
+        contactCreatedAt: caregiverContact.createdAt,
+        contactUpdatedAt: caregiverContact.updatedAt,
+      })
+      .from(tag)
+      .leftJoin(caregiverContact, eq(tag.contactId, caregiverContact.id))
+      .where(and(eq(tag.code, code), eq(tag.caregiverId, caregiverId)))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return c.json({ error: "not_found" }, 404);
+    return c.json({
+      code: row.code,
+      label: row.label,
+      state: row.state,
+      registeredAt: row.activatedAt ? row.activatedAt.toISOString() : null,
+      contact: row.contactId
+        ? {
+            id: row.contactId,
+            kind: row.contactKind!,
+            label: row.contactLabel,
+            value: row.contactValue!,
+            createdAt: row.contactCreatedAt!.toISOString(),
+            updatedAt: row.contactUpdatedAt!.toISOString(),
+          }
+        : null,
+    });
+  });
+
   // Contacts CRUD. Every request is scoped to the caller's caregiver_id — a
   // contact is never addressable across caregivers, so an id lookup that
   // doesn't match caregiverId returns 404 without leaking existence.
