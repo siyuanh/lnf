@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useT } from "@/lib/i18n/use-t";
+import { safeNext } from "@/lib/safe-next";
 
 function LoginForm() {
   const router = useRouter();
@@ -14,6 +15,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const expired = params.get("expired") === "1";
+  const next = safeNext(params.get("next"));
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +27,7 @@ function LoginForm() {
       setError(res.error.message ?? t("login.failed"));
       return;
     }
-    router.push("/caregiver/people");
+    router.push(next ?? "/caregiver/people");
   }
 
   return (
@@ -63,7 +65,10 @@ function LoginForm() {
         </button>
       </form>
       <p style={{ marginTop: 16, fontSize: 13, color: "#666" }}>
-        {t("caregiverLogin.noAccount")} <Link href="/caregiver/signup">{t("caregiverLogin.signUp")}</Link>
+        {t("caregiverLogin.noAccount")}{" "}
+        <Link href={next ? `/caregiver/signup?next=${encodeURIComponent(next)}` : "/caregiver/signup"}>
+          {t("caregiverLogin.signUp")}
+        </Link>
       </p>
     </main>
   );

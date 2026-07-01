@@ -7,6 +7,9 @@ export const AuditKinds = {
   partnerApiKeyCreated: "partner.api_key.created",
   partnerApiKeyRevoked: "partner.api_key.revoked",
   findCreated: "find.created",
+  caregiverContactCreated: "caregiver.contact.created",
+  caregiverContactUpdated: "caregiver.contact.updated",
+  caregiverContactDeleted: "caregiver.contact.deleted",
 } as const;
 
 export type AuditKind = (typeof AuditKinds)[keyof typeof AuditKinds];

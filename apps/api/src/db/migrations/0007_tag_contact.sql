@@ -1,0 +1,2 @@
+ALTER TABLE "tag" ADD COLUMN "contact_id" uuid;--> statement-breakpoint
+ALTER TABLE "tag" ADD CONSTRAINT "tag_contact_id_caregiver_contact_id_fk" FOREIGN KEY ("contact_id") REFERENCES "public"."caregiver_contact"("id") ON DELETE no action ON UPDATE no action;

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useT } from "@/lib/i18n/use-t";
 
 interface Person {
@@ -56,7 +57,12 @@ export default function PeoplePage() {
 
   return (
     <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <h1>{t("people.title")}</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <h1>{t("people.title")}</h1>
+        <Link href="/caregiver/contacts" style={{ fontSize: 13 }}>
+          {t("contacts.linkFromPeople")}
+        </Link>
+      </div>
 
       <section style={{ marginBottom: 32, padding: 16, border: "1px solid #ddd", borderRadius: 6 }}>
         <h2 style={{ fontSize: 16, marginTop: 0 }}>{t("people.addTitle")}</h2>

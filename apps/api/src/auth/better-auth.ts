@@ -12,10 +12,25 @@ export interface AuthOpts {
   // session DB row expire after this; any request within the window extends
   // both. Defaults to 15 minutes for the partner portal.
   sessionMaxAgeSec?: number;
+  // Called when Better-Auth wants to send a verification email. Left as an
+  // injected callback because there's no email provider wired yet — dev logs
+  // to stdout; production will hand in a Resend/SES/etc sender. Missing hook
+  // means we don't even ask Better-Auth to generate the link.
+  sendVerificationEmail?: (payload: {
+    to: string;
+    verificationUrl: string;
+  }) => Promise<void> | void;
 }
 
 export function makeAuth(opts: AuthOpts) {
   const sessionMaxAge = opts.sessionMaxAgeSec ?? 60 * 15;
+  const sendVerificationEmail =
+    opts.sendVerificationEmail ??
+    (({ to, verificationUrl }: { to: string; verificationUrl: string }) => {
+      // Dev/test default: no email provider wired. Stdout instead of throwing so
+      // signup still succeeds locally — real sender goes in via opts.
+      console.log(`[dev-email] verification for ${to}: ${verificationUrl}`);
+    });
   return betterAuth({
     database: drizzleAdapter(opts.db, {
       provider: "pg",
@@ -28,7 +43,26 @@ export function makeAuth(opts: AuthOpts) {
     }),
     secret: opts.secret,
     baseURL: opts.baseUrl,
-    emailAndPassword: { enabled: true, autoSignIn: true },
+    // requireEmailVerification stays off: we don't want signup to hard-block
+    // on an unclicked link (there's no mail provider wired). The verification
+    // link is sent on signup so real deployments can flip this true later
+    // without a schema change.
+    emailAndPassword: { enabled: true, autoSignIn: true, requireEmailVerification: false },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendVerificationEmail({ to: user.email, verificationUrl: url });
+      },
+    },
+    user: {
+      // `phone` on the caregiver user is optional metadata for now — no
+      // uniqueness, no verification. Wired here so signUp.email(...) accepts
+      // it in one round trip; strict validation lives in the shared Zod.
+      additionalFields: {
+        phone: { type: "string", required: false, input: true },
+      },
+    },
     session: { expiresIn: sessionMaxAge, updateAge: sessionMaxAge },
     advanced: opts.cookieDomain
       ? {

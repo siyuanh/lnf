@@ -27,7 +27,7 @@ export const PersonCreateRequest = z.object({
 export type PersonCreateRequest = z.infer<typeof PersonCreateRequest>;
 
 export const TagPairRequest = z.object({
-  protectedPersonId: z.string().uuid(),
+  contactId: z.string().uuid(),
   label: z.string().max(80).optional(),
 });
 export type TagPairRequest = z.infer<typeof TagPairRequest>;
@@ -35,7 +35,7 @@ export type TagPairRequest = z.infer<typeof TagPairRequest>;
 export const TagPairResponse = z.object({
   code: z.string(),
   state: TagState,
-  protectedPersonId: z.string().uuid(),
+  contactId: z.string().uuid(),
   label: z.string().nullable(),
 });
 export type TagPairResponse = z.infer<typeof TagPairResponse>;
@@ -45,3 +45,62 @@ export const MeResponse = z.object({
   email: z.string().email(),
 });
 export type MeResponse = z.infer<typeof MeResponse>;
+
+export const ContactKind = z.enum(["phone", "email", "address"]);
+export type ContactKind = z.infer<typeof ContactKind>;
+
+// E.164-ish: leading '+' then 8–15 digits. Accept spaces/dashes at the
+// boundary and normalize on the server. Deliberately loose: strict E.164
+// belongs in the SMS provider layer, not signup validation.
+const phonePattern = /^\+?[\d\s\-().]{7,20}$/;
+
+// value shape depends on kind: we accept anything for `address` and let the
+// UI treat it as a single free-form line for v1.
+const CONTACT_VALUE_MAX = 200;
+
+export const Contact = z.object({
+  id: z.string().uuid(),
+  kind: ContactKind,
+  label: z.string().nullable(),
+  value: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type Contact = z.infer<typeof Contact>;
+
+export const ContactCreateRequest = z
+  .object({
+    kind: ContactKind,
+    label: z.string().max(80).optional(),
+    value: z.string().min(1).max(CONTACT_VALUE_MAX),
+  })
+  .superRefine((v, ctx) => {
+    if (v.kind === "phone" && !phonePattern.test(v.value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "invalid phone",
+      });
+    }
+    if (v.kind === "email" && !z.string().email().safeParse(v.value).success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["value"],
+        message: "invalid email",
+      });
+    }
+  });
+export type ContactCreateRequest = z.infer<typeof ContactCreateRequest>;
+
+// PATCH: caller may change label and/or value but not the kind. Kind belongs
+// to the row identity — flipping phone→address on the same row would let a
+// verified channel silently move under a different verification regime.
+export const ContactUpdateRequest = z.object({
+  label: z.string().max(80).nullable().optional(),
+  value: z.string().min(1).max(CONTACT_VALUE_MAX).optional(),
+});
+export type ContactUpdateRequest = z.infer<typeof ContactUpdateRequest>;
+
+// Optional phone captured at signup time. Same lenient pattern as contacts.
+export const SignupPhone = z.string().regex(phonePattern);
+export type SignupPhone = z.infer<typeof SignupPhone>;

@@ -81,14 +81,14 @@ describe("caregiver router", () => {
     expect(data.people.map((p) => p.nickname)).toEqual(["Granny"]);
   });
 
-  it("pairs an inactive tag to a person (single step inactive→registered)", async () => {
+  it("pairs an inactive tag to a contact (single step inactive→registered)", async () => {
     const cookie = await signupAndCookie(app, "carol@example.com");
-    const personRes = await app.request("/api/caregiver/people", {
+    const contactRes = await app.request("/api/caregiver/contacts", {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ nickname: "Kid" }),
+      body: JSON.stringify({ kind: "phone", value: "+525512345678" }),
     });
-    const person = (await personRes.json()) as { id: string };
+    const contact = (await contactRes.json()) as { id: string };
 
     // Seed a partner + batch + inactive tag.
     const [p] = await db.insert(partner).values({ name: "Acme", billingEmail: "ops@acme.test" }).returning();
@@ -98,28 +98,56 @@ describe("caregiver router", () => {
     const pair = await app.request("/api/caregiver/tags/TESTCODE1/pair", {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ protectedPersonId: person.id, label: "blue jacket" }),
+      body: JSON.stringify({ contactId: contact.id, label: "blue jacket" }),
     });
     expect(pair.status).toBe(200);
-    const body = (await pair.json()) as { state: string; label: string };
+    const body = (await pair.json()) as { state: string; label: string; contactId: string };
     expect(body.state).toBe("registered");
     expect(body.label).toBe("blue jacket");
+    expect(body.contactId).toBe(contact.id);
 
     const audits = await db
       .select()
       .from(auditEvent)
       .where(eq(auditEvent.kind, "tag.registered"));
     expect(audits).toHaveLength(1);
+    const payload = audits[0]!.payload as { contactId: string };
+    expect(payload.contactId).toBe(contact.id);
+  });
+
+  it("pairs an active tag to a contact (active→registered)", async () => {
+    const cookie = await signupAndCookie(app, "carol2@example.com");
+    const contactRes = await app.request("/api/caregiver/contacts", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ kind: "phone", value: "+525512340000" }),
+    });
+    const contact = (await contactRes.json()) as { id: string };
+
+    const [p] = await db.insert(partner).values({ name: "Acme-Active", billingEmail: "ops@acme.test" }).returning();
+    const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
+    await db.insert(tag).values({ code: "ACTIVECODE", partnerId: p!.id, batchId: b!.id, state: "active" });
+
+    const pair = await app.request("/api/caregiver/tags/ACTIVECODE/pair", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ contactId: contact.id, label: "red hat" }),
+    });
+    expect(pair.status).toBe(200);
+    const body = (await pair.json()) as { state: string; label: string; contactId: string };
+    expect(body.state).toBe("registered");
+    expect(body.label).toBe("red hat");
+    expect(body.contactId).toBe(contact.id);
   });
 
   it("pair on already-registered tag returns 409 with current state", async () => {
     const cookie = await signupAndCookie(app, "dave@example.com");
-    const personRes = await app.request("/api/caregiver/people", {
+    const contactRes = await app.request("/api/caregiver/contacts", {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ nickname: "Kid" }),
+      body: JSON.stringify({ kind: "phone", value: "+525512345678" }),
     });
-    const person = (await personRes.json()) as { id: string };
+    const contact = (await contactRes.json()) as { id: string };
 
     const [p] = await db.insert(partner).values({ name: "Acme2", billingEmail: "x@y.test" }).returning();
     const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
@@ -133,23 +161,23 @@ describe("caregiver router", () => {
     const res = await app.request("/api/caregiver/tags/ALREADYREG/pair", {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ protectedPersonId: person.id }),
+      body: JSON.stringify({ contactId: contact.id }),
     });
     expect(res.status).toBe(409);
     const body = (await res.json()) as { error: string; state: string };
     expect(body.state).toBe("registered");
   });
 
-  it("pair rejects person belonging to a different caregiver", async () => {
+  it("pair rejects contact belonging to a different caregiver", async () => {
     const aliceCookie = await signupAndCookie(app, "alice2@example.com");
     const bobCookie = await signupAndCookie(app, "bob2@example.com");
 
-    const aliceP = await app.request("/api/caregiver/people", {
+    const aliceC = await app.request("/api/caregiver/contacts", {
       method: "POST",
       headers: { cookie: aliceCookie, "content-type": "application/json" },
-      body: JSON.stringify({ nickname: "AlicesKid" }),
+      body: JSON.stringify({ kind: "phone", value: "+525512345678" }),
     });
-    const alicePerson = (await aliceP.json()) as { id: string };
+    const aliceContact = (await aliceC.json()) as { id: string };
 
     const [p] = await db.insert(partner).values({ name: "Acme3", billingEmail: "x@y.test" }).returning();
     const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
@@ -158,8 +186,10 @@ describe("caregiver router", () => {
     const res = await app.request("/api/caregiver/tags/OTHER/pair", {
       method: "POST",
       headers: { cookie: bobCookie, "content-type": "application/json" },
-      body: JSON.stringify({ protectedPersonId: alicePerson.id }),
+      body: JSON.stringify({ contactId: aliceContact.id }),
     });
     expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("contact_not_found");
   });
 });

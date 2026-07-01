@@ -3,6 +3,7 @@ import {
   account,
   auditEvent,
   caregiver,
+  caregiverContact,
   find,
   partner,
   partnerApiKey,
@@ -20,6 +21,8 @@ import {
  */
 export async function resetPartnerTables(db: PostgresJsDatabase<Record<string, never>>) {
   await db.delete(auditEvent);
+  // find FKs to tag; must be cleared before tag or the delete fails.
+  await db.delete(find);
   await db.delete(tag);
   await db.delete(tagBatch);
   await db.delete(partnerApiKey);
@@ -32,10 +35,12 @@ export async function resetPartnerTables(db: PostgresJsDatabase<Record<string, n
  */
 export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string, never>>) {
   await db.delete(auditEvent);
+  await db.delete(find);
   await db.delete(tag);
   await db.delete(tagBatch);
   await db.delete(partnerApiKey);
   await db.delete(partner);
+  await db.delete(caregiverContact);
   await db.delete(protectedPerson);
   await db.delete(caregiver);
   await db.delete(session);

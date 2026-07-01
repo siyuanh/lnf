@@ -3,6 +3,7 @@ import { getT } from "@/lib/i18n/server";
 import type { DictKey } from "@/lib/i18n/dict";
 import PairForm from "./PairForm";
 import FinderForm from "./FinderForm";
+import ActivatePrompt from "./ActivatePrompt";
 
 interface PageProps {
   params: Promise<{ code: string }>;
@@ -58,9 +59,17 @@ export default async function FinderPage({ params }: PageProps) {
     isCaregiverSignedIn(),
   ]);
 
-  // Caregiver + pairable tag → pair flow. Otherwise finder copy.
+  // Caregiver + pairable tag → pair flow.
   if (signedIn && (state === "inactive" || state === "active")) {
     return <PairForm code={code} />;
+  }
+
+  // Not-signed-in + pairable tag → activation prompt (Sign in / Create
+  // account). We assume anyone opening the URL on a fresh phone is the buyer
+  // who just scanned their own product; the alternative — a stranger
+  // scanning an unregistered tag — is a rare no-op path we accept.
+  if (!signedIn && (state === "inactive" || state === "active")) {
+    return <ActivatePrompt code={code} />;
   }
 
   // Registered tag + not the caregiver → finder report form (§5.4 / UC-2).

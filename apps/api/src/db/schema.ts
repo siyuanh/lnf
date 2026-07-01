@@ -20,6 +20,11 @@ export const partnerUserRole = pgEnum("partner_user_role", ["admin", "member"]);
 // surfaces them but no flow writes them yet.
 export const tagState = pgEnum("tag_state", ["inactive", "active", "registered", "deprecated"]);
 export const findLocationKind = pgEnum("find_location_kind", ["gps", "address"]);
+// A contact channel the caregiver can be reached at. Kept broad on purpose:
+// even though §5.5 talks about push/email/SMS/voice, the *contact* is just the
+// address. Which channels are enabled per protected person is a different
+// concern and will live on its own table when the dispatcher lands.
+export const caregiverContactKind = pgEnum("caregiver_contact_kind", ["phone", "email", "address"]);
 
 export const partner = pgTable("partner", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -87,6 +92,25 @@ export const caregiver = pgTable("caregiver", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
+// A caregiver's own contact channels — phone number, extra email, mailing
+// address. Independent of protected_person; when the notification dispatcher
+// lands (§5.5) a separate join table will pick which of these fire for which
+// person. `value` is free text validated at the API boundary per kind.
+export const caregiverContact = pgTable(
+  "caregiver_contact",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
+    kind: caregiverContactKind("kind").notNull(),
+    label: text("label"),
+    value: text("value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("caregiver_contact_caregiver_idx").on(t.caregiverId)],
+);
+
 export const protectedPerson = pgTable(
   "protected_person",
   {
@@ -109,6 +133,11 @@ export const tag = pgTable(
     batchId: uuid("batch_id").notNull().references(() => tagBatch.id),
     state: tagState("state").notNull().default("inactive"),
     protectedPersonId: uuid("protected_person_id").references(() => protectedPerson.id),
+    // contactId is the caregiver_contact this tag alerts on. Nullable so
+    // inactive/active tags don't require one; set the moment a caregiver pairs
+    // the tag. protectedPersonId is retained for now but no new writes go
+    // there — future migration can drop it once historical data is gone.
+    contactId: uuid("contact_id").references(() => caregiverContact.id),
     caregiverId: uuid("caregiver_id").references(() => caregiver.id),
     label: text("label"),
     activatedAt: timestamp("activated_at", { withTimezone: true }),
@@ -168,12 +197,16 @@ export const auditEvent = pgTable("audit_event", {
 });
 
 // Better-Auth managed tables — Better-Auth owns rows; partner_user joins via email.
+// `phone` is an additional field registered with Better-Auth so the signup
+// form can capture it in one round trip. E.164-ish shape is enforced at the
+// Zod boundary, not the DB — leave it opaque here.
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   name: text("name"),
   image: text("image"),
+  phone: text("phone"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -220,6 +253,7 @@ export const schema = {
   tag,
   caregiver,
   protectedPerson,
+  caregiverContact,
   find,
   auditEvent,
   user,
