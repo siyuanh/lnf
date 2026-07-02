@@ -1,7 +1,7 @@
-# QE Test Guide — LNF
+# QE Test Guide — LNF (English)
 
 Manual verification guide for the LNF (Lost & Found) app. Covers every shipped
-feature end-to-end. English steps first, Spanish equivalents at the bottom.
+feature end-to-end. Spanish version: [`qe-test-guide.es.md`](./qe-test-guide.es.md).
 
 - **Production URL:** https://lnf-765895908568.southamerica-west1.run.app
 - **Local:** http://localhost:3000 (run `pnpm dev`)
@@ -139,47 +139,3 @@ can't view your tag.
 - [ ] Another caregiver gets 404 on that tag detail
 - [ ] Finder form submits (GPS + address)
 - [ ] Language toggle works
-
----
-
-# Guía de QE (Español)
-
-## 1. Registro e inicio de sesión del cuidador
-1. Ve a `/caregiver/signup`. Ingresa nombre, correo, contraseña (8+), teléfono opcional.
-2. Envía → quedas dentro con sesión iniciada (sin necesidad de correo).
-3. Cierra sesión y vuelve a entrar en `/caregiver/login`.
-**Aprobado:** cuenta creada, sesión automática, cierre y reingreso funcionan.
-
-## 2. Contactos (CRUD)
-1. En `/caregiver/contacts`, agrega contactos de teléfono, correo y dirección.
-2. Verifica que un correo o teléfono inválido sea rechazado.
-3. Edita y elimina un contacto.
-**Aprobado:** crear/listar/editar/eliminar funcionan; la validación bloquea datos inválidos.
-
-## 3. Activar una etiqueta
-1. Sin sesión, abre `/f/<código>` de una etiqueta activa → aparece "¿Listo para activar?".
-2. Inicia sesión → regresas a `/f/<código>`.
-3. Con sesión, elige un contacto y activa → "Etiqueta activada."
-4. Reactivar una etiqueta ya registrada → mensaje de conflicto.
-**Aprobado:** el aviso aparece sin sesión; la vinculación funciona con sesión.
-
-## 4. Lista y detalle de etiquetas
-1. En `/caregiver/tags`, verás tus códigos QR registrados y el contacto vinculado.
-2. Haz clic en **Ver** → imagen QR, estado, fecha y datos del contacto.
-3. Como otro cuidador, la misma URL de detalle debe dar 404.
-**Aprobado:** solo ves tus etiquetas; otro cuidador no puede ver la tuya.
-
-## 5. Reporte de hallazgo
-1. Abre `/f/<código>` (etiqueta registrada) en ventana privada.
-2. Usa GPS o escribe una dirección; no se puede enviar sin ubicación.
-3. Envía → "Gracias — se notificó al cuidador."
-**Aprobado:** se envía con GPS o dirección; se bloquea sin ubicación.
-
-## 6. Portal de partner (requiere cuenta de partner)
-1. `/partner/login`, genera un lote, descarga el zip, revisa el detalle del lote.
-2. Tras ~15 min inactivo, la sesión expira.
-**Aprobado:** generación, descarga, detalle y expiración funcionan.
-
-## 7. Cambio de idioma
-Usa el selector superior derecho; todo el texto cambia entre inglés y español.
-**Aprobado:** ambos idiomas se muestran completos.
