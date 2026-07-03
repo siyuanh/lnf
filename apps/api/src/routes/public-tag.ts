@@ -56,12 +56,26 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
     }
 
     const rows = await opts.db
-      .select({ state: tag.state })
+      .select({
+        state: tag.state,
+        personName: tag.personName,
+        personDetails: tag.personDetails,
+      })
       .from(tag)
       .where(eq(tag.code, code))
       .limit(1);
     if (rows.length === 0) return c.json({ error: "not_found" }, 404);
-    return c.json({ state: rows[0]!.state });
+    const row = rows[0]!;
+    // Only surface the person's details to finders on a registered tag —
+    // that's the reunite path. Never leak them for inactive/active/deprecated.
+    if (row.state === "registered") {
+      return c.json({
+        state: row.state,
+        personName: row.personName,
+        personDetails: row.personDetails,
+      });
+    }
+    return c.json({ state: row.state });
   });
 
   // Submit a find report (§5.4). Unauthenticated by design — anyone with the

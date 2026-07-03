@@ -11,6 +11,12 @@ interface PageProps {
 
 type TagState = "inactive" | "active" | "registered" | "deprecated";
 
+interface TagLookup {
+  state: TagState | "not_found";
+  personName: string | null;
+  personDetails: string | null;
+}
+
 // Public finder route. Per requirements §5.3, the QR encodes a URL of the
 // form https://<domain>/f/<code>. Both the caregiver (with the LNF app
 // installed) and a finder (no app) hit this same URL. The first SSR hit on
@@ -18,15 +24,22 @@ type TagState = "inactive" | "active" | "registered" | "deprecated";
 // "manufacturer scanned the printed QR" signal. If the visitor is a
 // signed-in caregiver and the tag is still pairable, we render the pair
 // form instead of the finder copy.
-async function lookupTagState(code: string): Promise<TagState | "not_found"> {
+async function lookupTag(code: string): Promise<TagLookup> {
   const target = process.env.API_PROXY_TARGET ?? "http://localhost:3001";
   const res = await fetch(`${target}/api/public/tag/${encodeURIComponent(code)}`, {
     cache: "no-store",
   });
-  if (res.status === 404) return "not_found";
-  if (!res.ok) return "not_found";
-  const data = (await res.json()) as { state: TagState };
-  return data.state;
+  if (!res.ok) return { state: "not_found", personName: null, personDetails: null };
+  const data = (await res.json()) as {
+    state: TagState;
+    personName?: string | null;
+    personDetails?: string | null;
+  };
+  return {
+    state: data.state,
+    personName: data.personName ?? null,
+    personDetails: data.personDetails ?? null,
+  };
 }
 
 async function isCaregiverSignedIn(): Promise<boolean> {
@@ -54,10 +67,11 @@ const COPY_FOR_STATE: Record<TagState, { title: DictKey; body: DictKey }> = {
 export default async function FinderPage({ params }: PageProps) {
   const { code } = await params;
   const { t } = await getT();
-  const [state, signedIn] = await Promise.all([
-    lookupTagState(code),
+  const [tag, signedIn] = await Promise.all([
+    lookupTag(code),
     isCaregiverSignedIn(),
   ]);
+  const state = tag.state;
 
   // Caregiver + pairable tag → pair flow.
   if (signedIn && (state === "inactive" || state === "active")) {
@@ -75,9 +89,12 @@ export default async function FinderPage({ params }: PageProps) {
   // Registered tag + not the caregiver → finder report form (§5.4 / UC-2).
   // A signed-in caregiver still sees the informational copy here; we don't
   // verify ownership of *this specific* tag, but rendering a "report a find"
-  // form to the caregiver themselves would be the wrong affordance.
+  // form to the caregiver themselves would be the wrong affordance. Pass the
+  // person's details through so the finder knows who they're helping.
   if (state === "registered" && !signedIn) {
-    return <FinderForm code={code} />;
+    return (
+      <FinderForm code={code} personName={tag.personName} personDetails={tag.personDetails} />
+    );
   }
 
   // not_found falls through to the inactive copy — same "this tag is new"

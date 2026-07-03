@@ -111,6 +111,8 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         caregiverId,
         contactId: input.contactId,
         label: input.label ?? null,
+        personName: input.personName ?? null,
+        personDetails: input.personDetails ?? null,
       })
       .where(and(eq(tag.code, code), inArray(tag.state, ["inactive", "active"])))
       .returning({
@@ -165,6 +167,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         code: tag.code,
         label: tag.label,
         state: tag.state,
+        personName: tag.personName,
         activatedAt: tag.activatedAt,
         contactId: caregiverContact.id,
         contactKind: caregiverContact.kind,
@@ -180,6 +183,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         code: t.code,
         label: t.label,
         state: t.state,
+        personName: t.personName,
         registeredAt: t.activatedAt ? t.activatedAt.toISOString() : null,
         contact: t.contactId
           ? {
@@ -204,6 +208,8 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         code: tag.code,
         label: tag.label,
         state: tag.state,
+        personName: tag.personName,
+        personDetails: tag.personDetails,
         activatedAt: tag.activatedAt,
         contactId: caregiverContact.id,
         contactKind: caregiverContact.kind,
@@ -222,6 +228,8 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
       code: row.code,
       label: row.label,
       state: row.state,
+      personName: row.personName,
+      personDetails: row.personDetails,
       registeredAt: row.activatedAt ? row.activatedAt.toISOString() : null,
       contact: row.contactId
         ? {

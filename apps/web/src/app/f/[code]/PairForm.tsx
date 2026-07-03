@@ -16,6 +16,8 @@ export default function PairForm({ code }: { code: string }) {
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [contactId, setContactId] = useState("");
   const [label, setLabel] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [personDetails, setPersonDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -43,6 +45,8 @@ export default function PairForm({ code }: { code: string }) {
       body: JSON.stringify({
         contactId,
         label: label.trim() ? label.trim() : undefined,
+        personName: personName.trim() ? personName.trim() : undefined,
+        personDetails: personDetails.trim() ? personDetails.trim() : undefined,
       }),
     });
     setSubmitting(false);
@@ -103,6 +107,28 @@ export default function PairForm({ code }: { code: string }) {
                 </option>
               ))}
             </select>
+          </label>
+          <label style={{ display: "block", marginBottom: 12 }}>
+            {t("pair.personName")}{" "}
+            <span style={{ color: "#999", fontSize: 12 }}>{t("pair.personNameHint")}</span>
+            <input
+              type="text"
+              value={personName}
+              onChange={(e) => setPersonName(e.target.value)}
+              maxLength={80}
+              style={{ display: "block", width: "100%", padding: 8 }}
+            />
+          </label>
+          <label style={{ display: "block", marginBottom: 12 }}>
+            {t("pair.personDetails")}{" "}
+            <span style={{ color: "#999", fontSize: 12 }}>{t("pair.personDetailsHint")}</span>
+            <textarea
+              value={personDetails}
+              onChange={(e) => setPersonDetails(e.target.value)}
+              maxLength={500}
+              rows={3}
+              style={{ display: "block", width: "100%", padding: 8 }}
+            />
           </label>
           <label style={{ display: "block", marginBottom: 12 }}>
             {t("pair.label")}{" "}

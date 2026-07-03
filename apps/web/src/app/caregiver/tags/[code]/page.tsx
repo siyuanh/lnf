@@ -17,6 +17,8 @@ interface TagDetail {
   code: string;
   label: string | null;
   state: string;
+  personName: string | null;
+  personDetails: string | null;
   registeredAt: string | null;
   contact: TagContact | null;
 }
@@ -97,6 +99,15 @@ export default function TagDetailPage({ params }: { params: Promise<{ code: stri
           k={t("tagDetail.registeredAt")}
           v={tag.registeredAt ? new Date(tag.registeredAt).toLocaleString() : "—"}
         />
+      </section>
+
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16 }}>{t("tagDetail.personSection")}</h2>
+        <Row k={t("tagDetail.personName")} v={tag.personName ?? "—"} />
+        <div style={{ display: "flex", gap: 12, padding: "6px 0" }}>
+          <span style={{ minWidth: 140, color: "#888" }}>{t("tagDetail.personDetails")}</span>
+          <span style={{ whiteSpace: "pre-wrap" }}>{tag.personDetails ?? "—"}</span>
+        </div>
       </section>
 
       <section>

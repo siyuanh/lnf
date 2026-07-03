@@ -140,6 +140,12 @@ export const tag = pgTable(
     contactId: uuid("contact_id").references(() => caregiverContact.id),
     caregiverId: uuid("caregiver_id").references(() => caregiver.id),
     label: text("label"),
+    // Details of the person wearing this tag, captured at activation. Shown to
+    // finders on /f/<code> to help reunite (like the old protected-person
+    // publicNote, but tag-scoped). Nullable: pairable-but-unpaired tags have
+    // none, and a caregiver may pair a contact without naming a person.
+    personName: text("person_name"),
+    personDetails: text("person_details"),
     activatedAt: timestamp("activated_at", { withTimezone: true }),
     deprecatedAt: timestamp("deprecated_at", { withTimezone: true }),
   },

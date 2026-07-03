@@ -209,7 +209,12 @@ describe("caregiver router", () => {
     const pair = await app.request(`/api/caregiver/tags/${code}/pair`, {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ contactId: contact.id, label: "blue jacket" }),
+      body: JSON.stringify({
+        contactId: contact.id,
+        label: "blue jacket",
+        personName: "María",
+        personDetails: "78, dementia. Please call her caregiver.",
+      }),
     });
     expect(pair.status).toBe(200);
     return { cookie, code, contactId: contact.id };
@@ -220,13 +225,20 @@ describe("caregiver router", () => {
     const res = await app.request("/api/caregiver/tags", { headers: { cookie } });
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      tags: { code: string; label: string | null; state: string; contact: { id: string; value: string } | null }[];
+      tags: {
+        code: string;
+        label: string | null;
+        state: string;
+        personName: string | null;
+        contact: { id: string; value: string } | null;
+      }[];
     };
     expect(body.tags).toHaveLength(1);
     const t0 = body.tags[0]!;
     expect(t0.code).toBe(code);
     expect(t0.label).toBe("blue jacket");
     expect(t0.state).toBe("registered");
+    expect(t0.personName).toBe("María");
     expect(t0.contact?.id).toBe(contactId);
     expect(t0.contact?.value).toBe("+525512345678");
   });
@@ -248,10 +260,14 @@ describe("caregiver router", () => {
       code: string;
       label: string | null;
       state: string;
+      personName: string | null;
+      personDetails: string | null;
       contact: { id: string; kind: string; label: string | null; value: string; createdAt: string } | null;
     };
     expect(body.code).toBe(code);
     expect(body.label).toBe("blue jacket");
+    expect(body.personName).toBe("María");
+    expect(body.personDetails).toBe("78, dementia. Please call her caregiver.");
     expect(body.contact?.id).toBe(contactId);
     expect(body.contact?.kind).toBe("phone");
     expect(body.contact?.label).toBe("Mobile");

@@ -47,5 +47,10 @@ export type BatchDetailResponse = z.infer<typeof BatchDetailResponse>;
 
 export const PublicTagStateResponse = z.object({
   state: TagState,
+  // Finder-visible details of the person wearing the tag. Only populated for
+  // `registered` tags; null otherwise (and never leaks the caregiver's own
+  // contact info — finders submit a report, they don't get the phone number).
+  personName: z.string().nullable().optional(),
+  personDetails: z.string().nullable().optional(),
 });
 export type PublicTagStateResponse = z.infer<typeof PublicTagStateResponse>;

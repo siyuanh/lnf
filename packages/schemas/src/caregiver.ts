@@ -26,9 +26,16 @@ export const PersonCreateRequest = z.object({
 });
 export type PersonCreateRequest = z.infer<typeof PersonCreateRequest>;
 
+// Bounds for the person the tag identifies. Details is finder-visible free
+// text (age, conditions, how to help) — capped to keep it a short blurb.
+export const PERSON_NAME_MAX = 80;
+export const PERSON_DETAILS_MAX = 500;
+
 export const TagPairRequest = z.object({
   contactId: z.string().uuid(),
   label: z.string().max(80).optional(),
+  personName: z.string().max(PERSON_NAME_MAX).optional(),
+  personDetails: z.string().max(PERSON_DETAILS_MAX).optional(),
 });
 export type TagPairRequest = z.infer<typeof TagPairRequest>;
 
@@ -108,6 +115,7 @@ export const RegisteredTagSummary = z.object({
   code: z.string(),
   label: z.string().nullable(),
   state: TagState,
+  personName: z.string().nullable(),
   contact: z
     .object({
       id: z.string().uuid(),
@@ -132,6 +140,8 @@ export const TagDetailResponse = z.object({
   code: z.string(),
   label: z.string().nullable(),
   state: TagState,
+  personName: z.string().nullable(),
+  personDetails: z.string().nullable(),
   registeredAt: z.string().datetime().nullable(),
   contact: Contact.nullable(),
 });

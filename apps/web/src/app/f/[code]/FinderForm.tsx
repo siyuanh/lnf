@@ -4,7 +4,15 @@ import { useT } from "@/lib/i18n/use-t";
 
 type Gps = { lat: number; lon: number; accuracyM?: number };
 
-export default function FinderForm({ code }: { code: string }) {
+export default function FinderForm({
+  code,
+  personName,
+  personDetails,
+}: {
+  code: string;
+  personName?: string | null;
+  personDetails?: string | null;
+}) {
   const t = useT();
   const [gps, setGps] = useState<Gps | null>(null);
   const [gpsBusy, setGpsBusy] = useState(false);
@@ -86,6 +94,25 @@ export default function FinderForm({ code }: { code: string }) {
     <main style={{ maxWidth: 480, margin: "32px auto", fontFamily: "system-ui", padding: 16 }}>
       <h1 style={{ fontSize: 22 }}>{t("finderReport.title")}</h1>
       <p style={{ color: "#444" }}>{t("finderReport.intro")}</p>
+
+      {(personName || personDetails) && (
+        <section
+          style={{
+            marginTop: 16,
+            padding: 16,
+            background: "#f0f7ff",
+            border: "1px solid #cfe3ff",
+            borderRadius: 8,
+          }}
+        >
+          {personName && (
+            <p style={{ margin: "0 0 6px", fontWeight: 600, fontSize: 18 }}>{personName}</p>
+          )}
+          {personDetails && (
+            <p style={{ margin: 0, color: "#334", whiteSpace: "pre-wrap" }}>{personDetails}</p>
+          )}
+        </section>
+      )}
 
       <form onSubmit={onSubmit} style={{ marginTop: 16 }}>
         <div style={{ marginBottom: 16 }}>

@@ -14,6 +14,7 @@ interface RegisteredTag {
   code: string;
   label: string | null;
   state: string;
+  personName: string | null;
   contact: TagContact | null;
   registeredAt: string | null;
 }
@@ -51,6 +52,7 @@ export default function TagsPage() {
           <thead>
             <tr>
               <th align="left">{t("tags.colCode")}</th>
+              <th align="left">{t("tags.colPerson")}</th>
               <th align="left">{t("tags.colLabel")}</th>
               <th align="left">{t("tags.colContact")}</th>
               <th />
@@ -60,6 +62,7 @@ export default function TagsPage() {
             {tags.map((tag) => (
               <tr key={tag.code} style={{ borderTop: "1px solid #eee" }}>
                 <td style={{ padding: "10px 0", fontFamily: "monospace" }}>{tag.code}</td>
+                <td>{tag.personName ?? "—"}</td>
                 <td style={{ color: "#555" }}>{tag.label ?? "—"}</td>
                 <td style={{ color: "#555" }}>{contactSummary(tag.contact)}</td>
                 <td style={{ textAlign: "right" }}>

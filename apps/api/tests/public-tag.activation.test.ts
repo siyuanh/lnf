@@ -76,4 +76,45 @@ describe("tag activation (GET /api/tags/:code)", () => {
     const audits = await db.select().from(auditEvent).where(eq(auditEvent.kind, "tag.activated"));
     expect(audits).toHaveLength(0);
   });
+
+  it("exposes person name/details to finders on a registered tag", async () => {
+    const [p] = await db.insert(partner).values({ name: "Acme4", billingEmail: "x@y.test" }).returning();
+    const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
+    await db.insert(tag).values({
+      code: "PERSONCODE",
+      partnerId: p!.id,
+      batchId: b!.id,
+      state: "registered",
+      personName: "María",
+      personDetails: "78, dementia. Please call her caregiver.",
+    });
+
+    const res = await app.request("/api/public/tag/PERSONCODE");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { state: string; personName?: string; personDetails?: string };
+    expect(body.state).toBe("registered");
+    expect(body.personName).toBe("María");
+    expect(body.personDetails).toBe("78, dementia. Please call her caregiver.");
+  });
+
+  it("does not expose person details for a non-registered tag", async () => {
+    const [p] = await db.insert(partner).values({ name: "Acme5", billingEmail: "x@y.test" }).returning();
+    const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
+    // active tag carrying person data should NOT leak it (only registered does).
+    await db.insert(tag).values({
+      code: "ACTIVEPERSON",
+      partnerId: p!.id,
+      batchId: b!.id,
+      state: "active",
+      personName: "Should not leak",
+      personDetails: "secret",
+    });
+
+    const res = await app.request("/api/public/tag/ACTIVEPERSON");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { state: string; personName?: string; personDetails?: string };
+    expect(body.state).toBe("active");
+    expect(body.personName).toBeUndefined();
+    expect(body.personDetails).toBeUndefined();
+  });
 });
