@@ -17,4 +17,30 @@ describe("better-auth handler", () => {
     });
     expect([200, 201]).toContain(res.status);
   });
+
+  // Mobile clients authenticate with `Authorization: Bearer <token>` instead of
+  // cookies. Verify the bearer plugin accepts the session token returned on
+  // sign-in and lets a protected caregiver route through.
+  it("authenticates a protected route via bearer token (mobile path)", async () => {
+    const email = "bearer@acme.test";
+    const signup = await app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "correct-horse-battery-staple", name: "B" }),
+      headers: { "content-type": "application/json" },
+    });
+    expect([200, 201]).toContain(signup.status);
+    // Better-Auth returns the session token in the set-auth-token header (bearer
+    // plugin) and/or the JSON body `token`.
+    const headerToken = signup.headers.get("set-auth-token");
+    const body = (await signup.json()) as { token?: string };
+    const token = headerToken ?? body.token;
+    expect(token).toBeTruthy();
+
+    const me = await app.request("/api/caregiver/me", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(me.status).toBe(200);
+    const meBody = (await me.json()) as { email: string };
+    expect(meBody.email).toBe(email);
+  });
 });

@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { bearer } from "better-auth/plugins";
 import type { Db } from "../db/client.js";
 import * as schema from "../db/schema.js";
 
@@ -73,6 +74,12 @@ export function makeAuth(opts: AuthOpts) {
       },
     },
     session: { expiresIn: sessionMaxAge, updateAge: sessionMaxAge },
+    // bearer(): lets non-cookie clients (the Expo mobile app) authenticate by
+    // sending `Authorization: Bearer <token>`, where <token> is the session
+    // token Better-Auth returns on sign-in/sign-up. Additive — web keeps using
+    // cookies; getSession() accepts either. Settles the mobile-vs-web auth
+    // shape in one place per the CLAUDE.md gotcha.
+    plugins: [bearer()],
     advanced: opts.cookieDomain
       ? {
           crossSubDomainCookies: { enabled: true, domain: opts.cookieDomain },

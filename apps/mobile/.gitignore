@@ -1,0 +1,17 @@
+# Expo / React Native
+.expo/
+dist/
+web-build/
+*.orig.*
+
+# Native builds
+/ios
+/android
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
