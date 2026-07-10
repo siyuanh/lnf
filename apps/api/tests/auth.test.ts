@@ -43,4 +43,16 @@ describe("better-auth handler", () => {
     const meBody = (await me.json()) as { email: string };
     expect(meBody.email).toBe(email);
   });
+
+  it("rejects a protected route with an invalid bearer token", async () => {
+    const res = await app.request("/api/caregiver/me", {
+      headers: { authorization: "Bearer not-a-real-token" },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects a protected route with no auth at all", async () => {
+    const res = await app.request("/api/caregiver/me");
+    expect(res.status).toBe(401);
+  });
 });

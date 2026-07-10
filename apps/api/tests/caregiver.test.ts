@@ -81,6 +81,24 @@ describe("caregiver router", () => {
     expect(data.people.map((p) => p.nickname)).toEqual(["Granny"]);
   });
 
+  it("returns an empty people list for a fresh caregiver", async () => {
+    const cookie = await signupAndCookie(app, "empty@example.com");
+    const list = await app.request("/api/caregiver/people", { headers: { cookie } });
+    expect(list.status).toBe(200);
+    const data = (await list.json()) as { people: unknown[] };
+    expect(data.people).toEqual([]);
+  });
+
+  it("rejects /people without a session", async () => {
+    expect((await app.request("/api/caregiver/people")).status).toBe(401);
+    const post = await app.request("/api/caregiver/people", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ nickname: "X" }),
+    });
+    expect(post.status).toBe(401);
+  });
+
   it("pairs an inactive tag to a contact (single step inactive→registered)", async () => {
     const cookie = await signupAndCookie(app, "carol@example.com");
     const contactRes = await app.request("/api/caregiver/contacts", {
