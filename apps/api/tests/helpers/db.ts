@@ -7,6 +7,7 @@ import {
   find,
   partner,
   partnerApiKey,
+  partnerUser,
   protectedPerson,
   session,
   tag,
@@ -26,6 +27,7 @@ export async function resetPartnerTables(db: PostgresJsDatabase<Record<string, n
   await db.delete(tag);
   await db.delete(tagBatch);
   await db.delete(partnerApiKey);
+  await db.delete(partnerUser);
   await db.delete(partner);
 }
 
@@ -39,6 +41,7 @@ export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string,
   await db.delete(tag);
   await db.delete(tagBatch);
   await db.delete(partnerApiKey);
+  await db.delete(partnerUser);
   await db.delete(partner);
   await db.delete(caregiverContact);
   await db.delete(protectedPerson);

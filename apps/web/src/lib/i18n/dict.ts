@@ -22,6 +22,9 @@ export const dict = {
 
     "header.logout": "Log out",
 
+    "oauth.google": "Continue with Google",
+    "oauth.or": "or",
+
     "batches.title": "Batches",
     "batches.newBatch": "New batch",
     "batches.loading": "Loading…",
@@ -232,6 +235,9 @@ export const dict = {
     "login.expired": "Tu sesión expiró. Inicia sesión de nuevo.",
 
     "header.logout": "Cerrar sesión",
+
+    "oauth.google": "Continuar con Google",
+    "oauth.or": "o",
 
     "batches.title": "Lotes",
     "batches.newBatch": "Nuevo lote",

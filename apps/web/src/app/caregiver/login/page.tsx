@@ -5,6 +5,7 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useT } from "@/lib/i18n/use-t";
 import { safeNext } from "@/lib/safe-next";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 
 function LoginForm() {
   const router = useRouter();
@@ -64,6 +65,15 @@ function LoginForm() {
           {loading ? t("login.submitting") : t("login.submit")}
         </button>
       </form>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "16px 0", color: "#999", fontSize: 12 }}>
+        <hr style={{ flex: 1 }} />
+        {t("oauth.or")}
+        <hr style={{ flex: 1 }} />
+      </div>
+      <GoogleSignInButton
+        callbackURL={next ?? "/caregiver/people"}
+        label={t("oauth.google")}
+      />
       <p style={{ marginTop: 16, fontSize: 13, color: "#666" }}>
         {t("caregiverLogin.noAccount")}{" "}
         <Link href={next ? `/caregiver/signup?next=${encodeURIComponent(next)}` : "/caregiver/signup"}>

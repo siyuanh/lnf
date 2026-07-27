@@ -26,6 +26,12 @@ export interface AuthOpts {
     to: string;
     verificationUrl: string;
   }) => Promise<void> | void;
+  // Google OAuth client. Both caregiver and partner web apps share one client
+  // — Better-Auth's social sign-in is a single `/api/auth/sign-in/social` call
+  // regardless of which portal initiates it; the difference is only in the
+  // callbackURL each page passes. Omit either field to leave Google sign-in
+  // unregistered (buttons stay hidden client-side, see auth-client.ts).
+  google?: { clientId: string; clientSecret: string };
 }
 
 export function makeAuth(opts: AuthOpts) {
@@ -80,6 +86,7 @@ export function makeAuth(opts: AuthOpts) {
     // cookies; getSession() accepts either. Settles the mobile-vs-web auth
     // shape in one place per the CLAUDE.md gotcha.
     plugins: [bearer()],
+    socialProviders: opts.google ? { google: opts.google } : undefined,
     advanced: opts.cookieDomain
       ? {
           crossSubDomainCookies: { enabled: true, domain: opts.cookieDomain },

@@ -26,6 +26,12 @@ const EnvSchema = z.object({
   // extends the session; otherwise the cookie expires and the portal kicks
   // back to /partner/login. Default 15 min.
   PARTNER_SESSION_MAX_AGE_SEC: z.coerce.number().int().positive().default(900),
+  // Google OAuth client for "Sign in with Google" on both the caregiver and
+  // partner web apps. Both optional — Better-Auth only registers the google
+  // social provider when both are present, so the buttons can ship ahead of
+  // real credentials without breaking anything.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema> & { WEB_ORIGIN: string };

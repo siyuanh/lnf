@@ -18,6 +18,10 @@ const auth = makeAuth({
   trustedOrigins: env.AUTH_TRUSTED_ORIGINS
     ? env.AUTH_TRUSTED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
     : undefined,
+  google:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }
+      : undefined,
 });
 
 export const app = new Hono()
