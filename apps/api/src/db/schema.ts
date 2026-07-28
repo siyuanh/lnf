@@ -25,6 +25,17 @@ export const findLocationKind = pgEnum("find_location_kind", ["gps", "address"])
 // address. Which channels are enabled per protected person is a different
 // concern and will live on its own table when the dispatcher lands.
 export const caregiverContactKind = pgEnum("caregiver_contact_kind", ["phone", "email", "address"]);
+export const findStatus = pgEnum("find_status", [
+  "reported",
+  "acknowledged",
+  "claimed",
+  "resolved",
+  "false_positive",
+  "expired",
+]);
+export const channelKind = pgEnum("channel_kind", ["push", "email", "sms", "voice"]);
+export const deliveryStatus = pgEnum("delivery_status", ["queued", "sent", "delivered", "failed"]);
+export const spendKind = pgEnum("spend_kind", ["sms", "voice"]);
 
 export const partner = pgTable("partner", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -176,9 +187,87 @@ export const find = pgTable(
     // SHA-256 of finder IP + a server-side salt; used by §5.7 false-positive
     // throttling. Stored opaque so nothing reverses to an IP.
     finderFingerprint: text("finder_fingerprint"),
+    status: findStatus("status").notNull().default("reported"),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    expiredAt: timestamp("expired_at", { withTimezone: true }),
+    // §4.2 #10: follow-up submissions inside the 5-min collapse window point at
+    // the open find instead of starting a new escalation chain.
+    isCollapsedInto: uuid("is_collapsed_into"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("find_tag_idx").on(t.tagId, t.createdAt)],
+);
+
+// Which channels a caregiver is alerted on, in escalation order (§2.3).
+// protected_person_id NULL = account default. Push rows are written by the
+// mobile plan once device registration lands; the dispatcher skips kinds it
+// has no sender for.
+export const notificationChannel = pgTable(
+  "notification_channel",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
+    protectedPersonId: uuid("protected_person_id").references(() => protectedPerson.id),
+    kind: channelKind("kind").notNull(),
+    target: text("target").notNull(), // email address / e164 / expo push token
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    priority: integer("priority").notNull().default(0), // 0 = fires first
+    escalationDelaySeconds: integer("escalation_delay_seconds").notNull().default(300),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notification_channel_caregiver_idx").on(t.caregiverId, t.priority)],
+);
+
+// Registered mobile devices for push. Written by the mobile plan; created now
+// so that plan needs no migration.
+export const device = pgTable(
+  "device",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
+    platform: text("platform").notNull(), // ios | android
+    expoPushToken: text("expo_push_token").notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("device_expo_push_token_unique").on(t.expoPushToken)],
+);
+
+// One row per dispatch attempt (§2.3). Email/SMS rows carry the ack-link
+// bookkeeping (S1-4); push/voice leave the ack columns null.
+export const notificationAttempt = pgTable(
+  "notification_attempt",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    findId: uuid("find_id").notNull().references(() => find.id),
+    channelKind: channelKind("channel_kind").notNull(),
+    channelTarget: text("channel_target").notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }).notNull().defaultNow(),
+    providerMessageId: text("provider_message_id"),
+    deliveryStatus: deliveryStatus("delivery_status").notNull().default("queued"),
+    failureReason: text("failure_reason"),
+    costMinorUnits: integer("cost_minor_units").notNull().default(0),
+    ackLinkExpiresAt: timestamp("ack_link_expires_at", { withTimezone: true }),
+    ackLinkUsedAt: timestamp("ack_link_used_at", { withTimezone: true }),
+  },
+  (t) => [index("notification_attempt_find_idx").on(t.findId)],
+);
+
+// Daily aggregate of paid-channel spend per caregiver; checked just-in-time
+// at dispatch (§2.3, §3.5). One row per (caregiver, day, kind) — upserted.
+export const spendLedger = pgTable(
+  "spend_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
+    day: text("day").notNull(), // ISO date YYYY-MM-DD, DB time
+    kind: spendKind("kind").notNull(),
+    costMinorUnits: integer("cost_minor_units").notNull().default(0),
+    countryCode: text("country_code"),
+  },
+  (t) => [unique("spend_ledger_day_kind_unique").on(t.caregiverId, t.day, t.kind)],
 );
 
 /**
@@ -261,6 +350,10 @@ export const schema = {
   protectedPerson,
   caregiverContact,
   find,
+  notificationChannel,
+  device,
+  notificationAttempt,
+  spendLedger,
   auditEvent,
   user,
   account,
