@@ -8,14 +8,34 @@ import {
   TagPairRequest,
 } from "@app/schemas";
 import type { Db } from "../db/client.js";
-import { caregiverContact, protectedPerson, tag } from "../db/schema.js";
+import { caregiverContact, find, protectedPerson, tag } from "../db/schema.js";
 import { logAuditEvent } from "../audit/log.js";
+import { ensureDefaultChannels } from "../notify/channels.js";
 import { makeCaregiverSessionMiddleware } from "../auth/caregiver-session.js";
 import type { Auth } from "../auth/better-auth.js";
 
 export interface CaregiverRouterOpts {
   db: Db;
   auth: Auth;
+}
+
+// Maps a raw snake_case find+tag row (GET /finds) into the shared
+// CaregiverFindSummary contract shape (camelCase, ISO createdAt).
+function toCaregiverFindSummary(r: Record<string, unknown>) {
+  const createdAt = r["created_at"];
+  return {
+    id: r["id"] as string,
+    tagCode: r["tag_code"] as string,
+    status: r["status"] as "reported" | "acknowledged" | "claimed" | "resolved" | "false_positive" | "expired",
+    locationKind: r["location_kind"] as "gps" | "address",
+    lat: (r["lat"] as string | null) ?? null,
+    lon: (r["lon"] as string | null) ?? null,
+    addressText: (r["address_text"] as string | null) ?? null,
+    finderMessage: (r["finder_message"] as string | null) ?? null,
+    finderContact: (r["finder_contact"] as string | null) ?? null,
+    createdAt: createdAt instanceof Date ? createdAt.toISOString() : String(createdAt),
+    collapsedCount: r["collapsed_count"] as number,
+  };
 }
 
 export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
@@ -147,6 +167,9 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
           label: row.label,
         },
       });
+      // First pair bootstraps the default escalation chain (email → sms → voice)
+      // from the account email + first phone contact; idempotent thereafter.
+      await ensureDefaultChannels(tx, caregiverId, c.get("caregiverEmail"));
     });
 
     return c.json({
@@ -155,6 +178,50 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
       contactId: row.contactId!,
       label: row.label,
     });
+  });
+
+  // Open finds for this caregiver's tags, newest first, with collapse counts.
+  r.get("/finds", async (c) => {
+    const caregiverId = c.get("caregiverId");
+    const rows = await opts.db.execute(
+      sql`select f.id, t.code as tag_code, f.status, f.location_kind, f.lat, f.lon,
+                 f.address_text, f.finder_message, f.finder_contact, f.created_at,
+                 (select count(*)::int from find c2 where c2.is_collapsed_into = f.id) as collapsed_count
+          from find f join tag t on t.id = f.tag_id
+          where t.caregiver_id = ${caregiverId} and f.is_collapsed_into is null
+          order by f.created_at desc limit 100`,
+    );
+    return c.json({ finds: rows.map(toCaregiverFindSummary) });
+  });
+
+  r.post("/finds/:id/ack", async (c) => {
+    const caregiverId = c.get("caregiverId");
+    const findId = c.req.param("id");
+    // Ownership first (404, not 403, so existence doesn't leak); only a find
+    // still `reported` transitions — a repeat ack of an own find is an
+    // idempotent ok, never a 404 (plan self-review #2).
+    const owned = await opts.db
+      .select({ id: find.id, status: find.status })
+      .from(find)
+      .innerJoin(tag, eq(find.tagId, tag.id))
+      .where(and(eq(find.id, findId), eq(tag.caregiverId, caregiverId)))
+      .limit(1);
+    if (owned.length === 0) return c.json({ error: "not_found" }, 404);
+    if (owned[0]!.status === "reported") {
+      await opts.db.transaction(async (tx) => {
+        await tx
+          .update(find)
+          .set({ status: "acknowledged", acknowledgedAt: new Date() })
+          .where(and(eq(find.id, findId), eq(find.status, "reported")));
+        await logAuditEvent(tx, {
+          kind: "find.acknowledged",
+          caregiverId,
+          findId,
+          payload: { v: 1, findId, channelKind: "app", attemptId: null },
+        });
+      });
+    }
+    return c.json({ ok: true });
   });
 
   // List the tags this caregiver has registered. Left-joins the linked contact
