@@ -16,7 +16,7 @@ const MIGRATIONS_FOLDER = join(__dirname, "../src/db/migrations");
 export async function setup() {
   // PostGIS container on ARM64 requires reaper disabled (platform mismatch)
   process.env.TESTCONTAINERS_RYUK_DISABLED = "true";
-  
+
   const container = await new GenericContainer("postgis/postgis:16-3.4")
     .withEnvironment({
       POSTGRES_DB: "lnf_test",

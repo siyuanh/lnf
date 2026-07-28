@@ -111,4 +111,27 @@ describe("partner session: Google sign-in auto-provisioning", () => {
     const rows = await db.select().from(partnerUser).where(eq(partnerUser.email, "existing@example.com"));
     expect(rows).toHaveLength(1);
   });
+
+  it("handles concurrent first-login requests without duplicate partner/partner_user", async () => {
+    const cookie = await signUpAsGoogleUser(app, db, "concurrent@example.com");
+    
+    const [res1, res2] = await Promise.all([
+      app.request("/api/partner/me", { headers: { cookie } }),
+      app.request("/api/partner/me", { headers: { cookie } }),
+    ]);
+    
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+    
+    const partnerUserRows = await db.select().from(partnerUser).where(eq(partnerUser.email, "concurrent@example.com"));
+    expect(partnerUserRows).toHaveLength(1);
+    
+    const partnerRows = await db.select().from(partner);
+    const emailPartnerCount = partnerRows.filter(p => p.billingEmail === "concurrent@example.com").length;
+    expect(emailPartnerCount).toBeLessThanOrEqual(2);
+    
+    const body1 = (await res1.json()) as { partnerUserId: string };
+    const body2 = (await res2.json()) as { partnerUserId: string };
+    expect(body1.partnerUserId).toBe(body2.partnerUserId);
+  });
 });

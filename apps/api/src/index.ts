@@ -33,6 +33,11 @@ export const app = new Hono()
     }),
   )
   .get("/api/healthz", (c) => c.json({ ok: true }))
+  .get("/api/public/config", (c) =>
+    c.json({
+      googleSignInEnabled: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+    }),
+  )
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/public/tag", publicTagRouter({ db, fingerprintSalt: env.PARTNER_API_KEY_PEPPER }))
   .route("/api/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))

@@ -72,4 +72,38 @@ describe("loadEnv", () => {
       60,
     );
   });
+
+  it("warns when only GOOGLE_CLIENT_ID is set", () => {
+    const warn = console.warn;
+    const warnings: string[] = [];
+    console.warn = (msg: string) => warnings.push(msg);
+    
+    loadEnv({
+      ...VALID_BASE,
+      NODE_ENV: "development",
+      BETTER_AUTH_SECRET: "real-secret-thats-long-enough-yes-yes",
+      PARTNER_API_KEY_PEPPER: "real-pepper-thats-long-enough-yes-yes",
+      GOOGLE_CLIENT_ID: "test-client-id",
+    } as NodeJS.ProcessEnv);
+    
+    console.warn = warn;
+    expect(warnings.some(w => w.includes("GOOGLE_CLIENT_SECRET"))).toBe(true);
+  });
+
+  it("warns when only GOOGLE_CLIENT_SECRET is set", () => {
+    const warn = console.warn;
+    const warnings: string[] = [];
+    console.warn = (msg: string) => warnings.push(msg);
+    
+    loadEnv({
+      ...VALID_BASE,
+      NODE_ENV: "development",
+      BETTER_AUTH_SECRET: "real-secret-thats-long-enough-yes-yes",
+      PARTNER_API_KEY_PEPPER: "real-pepper-thats-long-enough-yes-yes",
+      GOOGLE_CLIENT_SECRET: "test-client-secret",
+    } as NodeJS.ProcessEnv);
+    
+    console.warn = warn;
+    expect(warnings.some(w => w.includes("GOOGLE_CLIENT_ID"))).toBe(true);
+  });
 });

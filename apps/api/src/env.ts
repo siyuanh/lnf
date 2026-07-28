@@ -44,6 +44,11 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   }
   const env = result.data;
 
+  if ((env.GOOGLE_CLIENT_ID && !env.GOOGLE_CLIENT_SECRET) || (!env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)) {
+    const missing = env.GOOGLE_CLIENT_ID ? "GOOGLE_CLIENT_SECRET" : "GOOGLE_CLIENT_ID";
+    console.warn(`[env] Google sign-in partially configured: ${missing} is missing (Google sign-in disabled)`);
+  }
+
   // Refuse to start in production with .env.example placeholder values. These
   // satisfy the length/format constraints (e.g. "replace-with-32-byte-..." is
   // exactly 32 chars), so without this guard a forgotten dev secret would

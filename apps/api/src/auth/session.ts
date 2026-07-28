@@ -39,7 +39,8 @@ export function makePartnerSessionMiddleware(opts: SessionMiddlewareOpts): Middl
         .where(and(eq(account.userId, session.user.id), eq(account.providerId, "google")))
         .limit(1);
       if (viaGoogle.length === 0) return forbidden(c);
-      member = await provisionPartnerForGoogleUser(opts.db, session.user.email, session.user.name ?? session.user.email);
+      member = await provisionPartnerForGoogleUser(opts.db, session.user.email, session.user.name?.trim() || session.user.email);
+      if (!member) return forbidden(c);
     }
     c.set("partnerId", member.partnerId);
     c.set("partnerUserId", member.id);
@@ -47,19 +48,42 @@ export function makePartnerSessionMiddleware(opts: SessionMiddlewareOpts): Middl
   };
 }
 
-async function provisionPartnerForGoogleUser(db: Db, email: string, name: string) {
+async function provisionPartnerForGoogleUser(
+  db: Db,
+  email: string,
+  name: string,
+): Promise<typeof partnerUser.$inferSelect | undefined> {
   return db.transaction(async (tx) => {
-    const [p] = await tx.insert(partner).values({ name, billingEmail: email }).returning();
-    const [created] = await tx
+    const trimmedName = name.trim() || email;
+    
+    const [p] = await tx.insert(partner).values({ name: trimmedName, billingEmail: email }).returning();
+    
+    const insertedUsers = await tx
       .insert(partnerUser)
       .values({ partnerId: p!.id, email, role: "admin" })
+      .onConflictDoNothing({ target: partnerUser.email })
       .returning();
-    await logAuditEvent(tx, {
-      kind: "partner.signup",
-      partnerId: p!.id,
-      payload: { v: 1, partnerId: p!.id, partnerUserId: created!.id, email, via: "google" },
-    });
-    return created!;
+    
+    if (insertedUsers.length > 0) {
+      await logAuditEvent(tx, {
+        kind: "partner.signup",
+        partnerId: p!.id,
+        payload: { v: 1, partnerId: p!.id, partnerUserId: insertedUsers[0]!.id, email, via: "google" },
+      });
+      return insertedUsers[0]!;
+    }
+    
+    const existing = await tx
+      .select()
+      .from(partnerUser)
+      .where(and(eq(partnerUser.email, email), isNull(partnerUser.deletedAt)))
+      .limit(1);
+    
+    if (existing.length === 0) {
+      return undefined;
+    }
+    
+    return existing[0]!;
   });
 }
 
