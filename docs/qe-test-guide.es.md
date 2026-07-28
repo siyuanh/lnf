@@ -94,12 +94,43 @@ cuidador no puede ver tu etiqueta.
 
 **Aprobado:** el formulario se envía con GPS o dirección; se bloquea sin ubicación.
 
-> Nota: todavía no se envía ninguna notificación al cuidador (el envío no está construido).
-> El hallazgo queda registrado en el servidor.
+> Nota: el envío inicia la escalada de notificaciones (§6). En dev, los envíos van a
+> **proveedores falsos** — nada llega a correos/teléfonos reales; los mensajes
+> "enviados" (con sus enlaces de confirmación) se imprimen en el log del servidor API.
 
 ---
 
-## 6. Portal de partner (requiere una cuenta de partner)
+## 6. Notificaciones y escalada (UC-3 confirma, UC-4 expira)
+
+Prerequisito: un cuidador con una etiqueta registrada (§3). Al activarla se crea la
+cadena por defecto: **correo primero, SMS 5 min después, llamada de voz 5 min
+después** — hasta que el cuidador confirme o la cadena se agote.
+
+**UC-3 — el cuidador confirma:**
+
+1. Envía un reporte de hallazgo (§5). En unos segundos el log de la API muestra
+   `[fake-email] → …` con un enlace de confirmación (`/api/public/ack/<attemptId>?token=…`).
+2. Confírmalo (el endpoint es POST, usa curl en lugar del navegador):
+   `curl -X POST 'http://localhost:3001/api/public/ack/<attemptId>?token=<token>'`
+   - **Se espera:** la página HTML "Recibido".
+3. `GET /api/caregiver/finds` (cuidador con sesión) muestra el hallazgo `acknowledged`.
+   - **Se espera:** no llega SMS ni llamada — la cadena se detuvo.
+4. Repite el mismo curl → **Se espera:** una página 410 "Ya confirmada" (enlace de un solo uso).
+
+**UC-4 — sin respuesta:**
+
+1. Envía un reporte e ignora todos los enlaces.
+2. **Se espera (≈10 min total en dev):** correo falso a los ~0 s, SMS falso a los
+   +5 min, voz falsa a los +10 min, luego nada.
+3. Después el hallazgo aparece como `expired` en `GET /api/caregiver/finds`, y la
+   tabla `notification_attempt` tiene una fila por canal, todas `sent`.
+
+**Aprobado:** confirmar detiene la cadena (solo correo); ignorar todo escala
+correo → SMS → voz y termina en `expired`.
+
+---
+
+## 7. Portal de partner (requiere una cuenta de partner)
 
 1. `/partner/login` → inicia sesión.
 2. `/partner/batches` → **Nuevo lote**, elige un tamaño, genera.
@@ -111,7 +142,7 @@ cuidador no puede ver tu etiqueta.
 
 ---
 
-## 7. Cambio de idioma
+## 8. Cambio de idioma
 
 1. Usa el conmutador superior derecho en cualquier página.
    - **Se espera:** todo el texto visible cambia entre inglés y español; sin romper el diseño,
@@ -121,7 +152,7 @@ cuidador no puede ver tu etiqueta.
 
 ---
 
-## 8. Manifiestos de enlaces universales (smoke)
+## 9. Manifiestos de enlaces universales (smoke)
 
 - `GET /.well-known/apple-app-site-association` → `200`, JSON `{"applinks":{"apps":[],"details":[]}}`.
 - `GET /.well-known/assetlinks.json` → `200`, `[]`.
@@ -139,4 +170,7 @@ cuidador no puede ver tu etiqueta.
 - [ ] La etiqueta aparece en `/caregiver/tags`, el detalle muestra QR + contacto
 - [ ] Otro cuidador recibe 404 en ese detalle de etiqueta
 - [ ] El formulario de hallazgo se envía (GPS + dirección)
+- [ ] El correo falso con enlace de confirmación aparece en el log de la API; al hacer POST el enlace muestra "Recibido"
+- [ ] Repetir el POST del mismo enlace → 410
+- [ ] Sin respuesta: llegan SMS (~+5 min) y voz (~+10 min), el hallazgo termina `expired`
 - [ ] El cambio de idioma funciona

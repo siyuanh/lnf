@@ -41,6 +41,11 @@ export function makeFakeSenders(opts: { failKinds?: ChannelKind[]; calls?: { msg
             // Fake LATAM ballpark costs so spend-cap logic is exercisable:
             costMinorUnits: kind === "sms" ? 9 : kind === "voice" ? 35 : 0,
           };
+      // Dev-only visibility: the QE guide's manual UC-3/UC-4 flows follow the
+      // ack link from the server log. NODE_ENV=test keeps test output pristine.
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[fake-${kind}] → ${msg.target}: ${msg.text}`);
+      }
       calls.push({ msg, result });
       return result;
     },

@@ -93,12 +93,43 @@ can't view your tag.
 
 **Pass:** form submits with GPS or address; empty-location is blocked.
 
-> Note: no notification is actually sent to the caregiver yet (dispatch not built).
-> The find is recorded server-side.
+> Note: the submission starts the notification escalation (§6). In dev, sends go
+> to **fake providers** — nothing reaches real inboxes/phones; the "sent"
+> messages (with their ack links) are printed in the API server log.
 
 ---
 
-## 6. Partner portal (requires a partner account)
+## 6. Notification & escalation (UC-3 ack, UC-4 expire)
+
+Prereq: a caregiver with a registered tag (§3). Pairing bootstraps the default
+chain: **email first, SMS 5 min later, voice call 5 min after that** — until the
+caregiver acknowledges or the chain exhausts.
+
+**UC-3 — caregiver acknowledges:**
+
+1. Submit a finder report (§5). Within a few seconds the API log shows
+   `[fake-email] → …` with an ack link (`/api/public/ack/<attemptId>?token=…`).
+2. Ack it (the endpoint is POST, so use curl rather than the browser):
+   `curl -X POST 'http://localhost:3001/api/public/ack/<attemptId>?token=<token>'`
+   - **Expect:** the "Recibido" HTML page.
+3. `GET /api/caregiver/finds` (signed-in caregiver) shows the find `acknowledged`.
+   - **Expect:** no SMS or voice follows — the chain stopped.
+4. Repeat the same curl → **Expect:** a 410 "Ya confirmada" page (single-use link).
+
+**UC-4 — no response:**
+
+1. Submit a report and ignore every link.
+2. **Expect (≈10 min total in dev):** fake email at ~0s, fake SMS at +5 min,
+   fake voice at +10 min, then nothing.
+3. Afterwards the find shows `expired` in `GET /api/caregiver/finds`, and the DB's
+   `notification_attempt` has one row per channel, all `sent`.
+
+**Pass:** ack stops the chain (email only); ignoring everything escalates
+email → SMS → voice and ends in `expired`.
+
+---
+
+## 7. Partner portal (requires a partner account)
 
 1. `/partner/login` → sign in.
 2. `/partner/batches` → **New batch**, choose a size, mint.
@@ -110,7 +141,7 @@ can't view your tag.
 
 ---
 
-## 7. Language switching
+## 8. Language switching
 
 1. Use the top-right toggle on any page.
    - **Expect:** all visible copy switches between English and Spanish; no layout break,
@@ -120,7 +151,7 @@ can't view your tag.
 
 ---
 
-## 8. Universal-link manifests (smoke)
+## 9. Universal-link manifests (smoke)
 
 - `GET /.well-known/apple-app-site-association` → `200`, JSON `{"applinks":{"apps":[],"details":[]}}`.
 - `GET /.well-known/assetlinks.json` → `200`, `[]`.
@@ -138,4 +169,7 @@ can't view your tag.
 - [ ] Tag appears in `/caregiver/tags`, detail shows QR + contact
 - [ ] Another caregiver gets 404 on that tag detail
 - [ ] Finder form submits (GPS + address)
+- [ ] Fake email with ack link appears in the API log; POSTing the link shows "Recibido"
+- [ ] Repeat POST of the same ack link → 410
+- [ ] No response: SMS (~+5 min) then voice (~+10 min) follow, find ends `expired`
 - [ ] Language toggle works
