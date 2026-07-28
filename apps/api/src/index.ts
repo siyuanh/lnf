@@ -5,6 +5,7 @@ import { makeDb } from "./db/client.js";
 import { partnerApiRouter, partnerSessionRouter } from "./routes/partner.js";
 import { publicTagRouter } from "./routes/public-tag.js";
 import { publicAckRouter } from "./routes/public-ack.js";
+import { twilioWebhookRouter } from "./routes/twilio-webhooks.js";
 import { caregiverSessionRouter } from "./routes/caregiver.js";
 import { makeAuth } from "./auth/better-auth.js";
 
@@ -42,6 +43,7 @@ export const app = new Hono()
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/public/tag", publicTagRouter({ db, fingerprintSalt: env.PARTNER_API_KEY_PEPPER }))
   .route("/api/public/ack", publicAckRouter({ db, ackSecret: env.ACK_LINK_SECRET }))
+  .route("/api/webhooks/twilio", twilioWebhookRouter({ db, ackSecret: env.ACK_LINK_SECRET }))
   .route("/api/partner-api", partnerApiRouter({ db, pepper: env.PARTNER_API_KEY_PEPPER }))
   .route(
     "/api/partner",
