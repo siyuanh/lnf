@@ -25,8 +25,10 @@ export interface ChannelSender {
 
 export type SenderRegistry = Partial<Record<ChannelKind, ChannelSender>>;
 
-export function makeFakeSenders(opts: { failKinds?: ChannelKind[] } = {}) {
-  const calls: { msg: NotificationMessage; result: SendResult }[] = [];
+export function makeFakeSenders(opts: { failKinds?: ChannelKind[]; calls?: { msg: NotificationMessage; result: SendResult }[] } = {}) {
+  // Optional shared call log: tests that build deps through a helper can hand
+  // in their own array; otherwise each fake records to a fresh one.
+  const calls = opts.calls ?? [];
   const make = (kind: ChannelKind): ChannelSender => ({
     name: `fake-${kind}`,
     kind,

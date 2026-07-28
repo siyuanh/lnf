@@ -5,11 +5,14 @@ import {
   caregiver,
   caregiverContact,
   find,
+  notificationAttempt,
+  notificationChannel,
   partner,
   partnerApiKey,
   partnerUser,
   protectedPerson,
   session,
+  spendLedger,
   tag,
   tagBatch,
   user,
@@ -22,6 +25,8 @@ import {
  */
 export async function resetPartnerTables(db: PostgresJsDatabase<Record<string, never>>) {
   await db.delete(auditEvent);
+  // notificationAttempt FKs to find; clear before find or the delete fails.
+  await db.delete(notificationAttempt);
   // find FKs to tag; must be cleared before tag or the delete fails.
   await db.delete(find);
   await db.delete(tag);
@@ -37,6 +42,10 @@ export async function resetPartnerTables(db: PostgresJsDatabase<Record<string, n
  */
 export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string, never>>) {
   await db.delete(auditEvent);
+  // New notification tables FK to find/caregiver; clear before their parents.
+  await db.delete(notificationAttempt);
+  await db.delete(notificationChannel);
+  await db.delete(spendLedger);
   await db.delete(find);
   await db.delete(tag);
   await db.delete(tagBatch);
@@ -57,6 +66,7 @@ export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string,
  */
 export async function resetFindTables(db: PostgresJsDatabase<Record<string, never>>) {
   await db.delete(auditEvent);
+  await db.delete(notificationAttempt);
   await db.delete(find);
   await db.delete(tag);
   await db.delete(tagBatch);
