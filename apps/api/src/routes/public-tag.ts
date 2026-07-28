@@ -3,9 +3,10 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { FindSubmitRequest } from "@app/schemas";
-import type { Db } from "../db/client.js";
+import type { Db, DbExecutor } from "../db/client.js";
 import { find, tag } from "../db/schema.js";
 import { logAuditEvent } from "../audit/log.js";
+import { enqueueJob } from "../notify/enqueue.js";
 
 export interface PublicTagRouterOpts {
   db: Db;
@@ -13,6 +14,8 @@ export interface PublicTagRouterOpts {
   // fingerprint can't be reversed to an IP via rainbow tables. Reuses the
   // partner API key pepper for simplicity.
   fingerprintSalt: string;
+  // Injectable for the S1-1 atomicity test — defaults to the tx-safe SQL enqueue.
+  enqueue?: (tx: DbExecutor, task: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
 // Pull a stable "who is this finder" signal from request headers. Forwarded
@@ -125,6 +128,9 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
         findId: f.id,
         payload: { v: 1, findId: f.id, tagCode: code, locationKind: input.location.kind },
       });
+      // S1-1: the escalation chain starts in the same transaction — the find
+      // and its first escalate_find job commit or roll back together.
+      await (opts.enqueue ?? enqueueJob)(tx, "escalate_find", { findId: f.id, step: 0 });
       return f;
     });
 
