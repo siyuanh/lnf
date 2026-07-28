@@ -38,6 +38,15 @@ const EnvSchema = z.object({
   // Public base URL used to build absolute ack links in emails/SMS
   // (e.g. https://api.lnf.app). Defaults to BETTER_AUTH_URL.
   PUBLIC_BASE_URL: z.string().url().optional(),
+  // Notification providers. All optional — absent credentials fall back to
+  // recording fakes (dev/test). Costs are real money in prod (§6 cost control).
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM_NUMBER: z.string().optional(),
+  // Per-caregiver daily cap for sms+voice, in minor currency units (§3.5).
+  SPEND_CAP_DAILY_MINOR: z.coerce.number().int().positive().default(500),
 });
 
 export type Env = z.infer<typeof EnvSchema> & {
