@@ -6,6 +6,11 @@ import {
   MintBatchRequest,
   MintBatchResponse,
   PartnerBatchMintedV1,
+  ChannelKind,
+  FindStatus,
+  CaregiverFindSummary,
+  FindAcknowledgedV1,
+  FindExpiredV1,
 } from "../index.js";
 import { FindCreatedV1 } from "../audit/find.created.v1.js";
 
@@ -27,5 +32,20 @@ describe("contracts (privacy boundaries)", () => {
   });
   it("FindCreatedV1", () => {
     expect(zodToJsonSchema(FindCreatedV1)).toMatchSnapshot();
+  });
+  it("ChannelKind", () => {
+    expect(zodToJsonSchema(ChannelKind)).toMatchSnapshot();
+  });
+  it("FindStatus", () => {
+    expect(zodToJsonSchema(FindStatus)).toMatchSnapshot();
+  });
+  it("CaregiverFindSummary", () => {
+    expect(zodToJsonSchema(CaregiverFindSummary)).toMatchSnapshot();
+  });
+  it("FindAcknowledgedV1", () => {
+    expect(zodToJsonSchema(FindAcknowledgedV1)).toMatchSnapshot();
+  });
+  it("FindExpiredV1", () => {
+    expect(zodToJsonSchema(FindExpiredV1)).toMatchSnapshot();
   });
 });

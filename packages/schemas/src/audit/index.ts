@@ -1,5 +1,7 @@
 export { PartnerBatchMintedV1 } from "./partner.batch.minted.v1.js";
 export { FindCreatedV1 } from "./find.created.v1.js";
+export { FindAcknowledgedV1 } from "./find.acknowledged.v1.js";
+export { FindExpiredV1 } from "./find.expired.v1.js";
 
 export const AuditKinds = {
   partnerBatchMinted: "partner.batch.minted",

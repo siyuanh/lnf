@@ -1,5 +1,148 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`contracts (privacy boundaries) > CaregiverFindSummary 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "addressText": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+    "collapsedCount": {
+      "minimum": 0,
+      "type": "integer",
+    },
+    "createdAt": {
+      "type": "string",
+    },
+    "finderContact": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+    "finderMessage": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+    "id": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "lat": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+    "locationKind": {
+      "enum": [
+        "gps",
+        "address",
+      ],
+      "type": "string",
+    },
+    "lon": {
+      "type": [
+        "string",
+        "null",
+      ],
+    },
+    "status": {
+      "enum": [
+        "reported",
+        "acknowledged",
+        "claimed",
+        "resolved",
+        "false_positive",
+        "expired",
+      ],
+      "type": "string",
+    },
+    "tagCode": {
+      "type": "string",
+    },
+  },
+  "required": [
+    "id",
+    "tagCode",
+    "status",
+    "locationKind",
+    "lat",
+    "lon",
+    "addressText",
+    "finderMessage",
+    "finderContact",
+    "createdAt",
+    "collapsedCount",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > ChannelKind 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "enum": [
+    "push",
+    "email",
+    "sms",
+    "voice",
+  ],
+  "type": "string",
+}
+`;
+
+exports[`contracts (privacy boundaries) > FindAcknowledgedV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "attemptId": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string",
+        },
+        {
+          "type": "null",
+        },
+      ],
+    },
+    "channelKind": {
+      "enum": [
+        "push",
+        "email",
+        "sms",
+        "voice",
+        "app",
+      ],
+      "type": "string",
+    },
+    "findId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "findId",
+    "channelKind",
+    "attemptId",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`contracts (privacy boundaries) > FindCreatedV1 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -31,6 +174,48 @@ exports[`contracts (privacy boundaries) > FindCreatedV1 1`] = `
     "locationKind",
   ],
   "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > FindExpiredV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "attemptsCount": {
+      "minimum": 0,
+      "type": "integer",
+    },
+    "findId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "findId",
+    "attemptsCount",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > FindStatus 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "enum": [
+    "reported",
+    "acknowledged",
+    "claimed",
+    "resolved",
+    "false_positive",
+    "expired",
+  ],
+  "type": "string",
 }
 `;
 
