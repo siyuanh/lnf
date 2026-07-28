@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { FindSubmitRequest } from "@app/schemas";
 import type { Db, DbExecutor } from "../db/client.js";
@@ -104,6 +104,18 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
     const fingerprint = clientFingerprint(c, opts.fingerprintSalt);
 
     const inserted = await opts.db.transaction(async (tx) => {
+      // §4.2 #10: an open find (reported/acknowledged/claimed) younger than 5
+      // minutes on this tag absorbs follow-up submissions. Collapsed finds are
+      // stored (caregiver sees "3 reports in 4 min") but don't re-escalate.
+      const open = await tx.execute(
+        sql`select id from find
+            where tag_id = ${t.id}
+              and status in ('reported', 'acknowledged', 'claimed')
+              and created_at > now() - interval '5 minutes'
+            order by created_at asc
+            limit 1`,
+      );
+      const collapsedInto = (open[0]?.["id"] as string | undefined) ?? null;
       const findRows = await tx
         .insert(find)
         .values({
@@ -119,6 +131,7 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
           finderMessage: input.message ?? null,
           finderContact: input.contact ?? null,
           finderFingerprint: fingerprint,
+          isCollapsedInto: collapsedInto,
         })
         .returning({ id: find.id });
       const f = findRows[0]!;
@@ -130,7 +143,9 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
       });
       // S1-1: the escalation chain starts in the same transaction — the find
       // and its first escalate_find job commit or roll back together.
-      await (opts.enqueue ?? enqueueJob)(tx, "escalate_find", { findId: f.id, step: 0 });
+      if (!collapsedInto) {
+        await (opts.enqueue ?? enqueueJob)(tx, "escalate_find", { findId: f.id, step: 0 });
+      }
       return f;
     });
 

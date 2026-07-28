@@ -74,4 +74,32 @@ describe("POST /api/public/tag/:code/find — escalation enqueue (S1-1)", () => 
     const rows = await db.select({ id: find.id }).from(find).where(eq(find.tagId, (await db.select({ id: tag.id }).from(tag).where(eq(tag.code, "ENQ2")))[0]!.id));
     expect(rows.length).toBe(0);
   });
+
+  it("collapses a second find within 5 minutes into the open one (no new job)", async () => {
+    const [p] = await db.insert(partner).values({ name: "Acme", billingEmail: "ops@acme.test" }).returning();
+    const [b] = await db.insert(tagBatch).values({ partnerId: p!.id, size: 1 }).returning();
+    await db.insert(tag).values({ code: "COL1", partnerId: p!.id, batchId: b!.id, state: "registered" });
+
+    const post = () =>
+      app.request("/api/public/tag/COL1/find", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ location: { kind: "gps", lat: 19.43, lon: -99.13 } }),
+      });
+
+    const first = await (await post()).json() as { findId: string };
+    const second = await (await post()).json() as { findId: string };
+    expect(second.findId).not.toBe(first.findId);
+
+    const rows = await db.select().from(find).where(eq(find.id, second.findId));
+    expect(rows[0]!.isCollapsedInto).toBe(first.findId);
+
+    const jobs = await db.execute(
+      sql`select t.identifier as task_identifier
+          from graphile_worker._private_jobs j
+          join graphile_worker._private_tasks t on t.id = j.task_id
+          where t.identifier = 'escalate_find'`,
+    );
+    expect(jobs.length).toBe(1); // only the first find escalated
+  });
 });
