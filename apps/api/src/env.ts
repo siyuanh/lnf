@@ -32,9 +32,19 @@ const EnvSchema = z.object({
   // real credentials without breaking anything.
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // HMAC secret for single-use ack links (S1-4). Falls back to
+  // BETTER_AUTH_SECRET when unset so existing deploys keep working.
+  ACK_LINK_SECRET: z.string().min(32).optional(),
+  // Public base URL used to build absolute ack links in emails/SMS
+  // (e.g. https://api.lnf.app). Defaults to BETTER_AUTH_URL.
+  PUBLIC_BASE_URL: z.string().url().optional(),
 });
 
-export type Env = z.infer<typeof EnvSchema> & { WEB_ORIGIN: string };
+export type Env = z.infer<typeof EnvSchema> & {
+  WEB_ORIGIN: string;
+  PUBLIC_BASE_URL: string;
+  ACK_LINK_SECRET: string;
+};
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const result = EnvSchema.safeParse(source);
@@ -62,5 +72,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     }
   }
 
-  return { ...env, WEB_ORIGIN: env.WEB_ORIGIN ?? env.BETTER_AUTH_URL };
+  return {
+    ...env,
+    WEB_ORIGIN: env.WEB_ORIGIN ?? env.BETTER_AUTH_URL,
+    PUBLIC_BASE_URL: env.PUBLIC_BASE_URL ?? env.BETTER_AUTH_URL,
+    ACK_LINK_SECRET: env.ACK_LINK_SECRET ?? env.BETTER_AUTH_SECRET,
+  };
 }
