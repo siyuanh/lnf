@@ -2,6 +2,7 @@ import { GenericContainer, type StartedTestContainer, Wait } from "testcontainer
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { makeWorkerUtils } from "graphile-worker";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -36,6 +37,14 @@ export async function setup() {
   const db = drizzle(sql);
   await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   await sql.end();
+
+  // graphile-worker's own schema (jobs table + add_job()) — migrations above
+  // cover only app tables. makeWorkerUtils().migrate() is the library's
+  // supported installer (GenericContainer has no getConnectionUri; reuse the
+  // same URI string built above).
+  const utils = await makeWorkerUtils({ connectionString: connectionUri });
+  await utils.migrate();
+  await utils.release();
 }
 
 export async function teardown() {
