@@ -204,6 +204,50 @@ exports[`contracts (privacy boundaries) > FindExpiredV1 1`] = `
 }
 `;
 
+exports[`contracts (privacy boundaries) > FindFalsePositiveV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "findId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "findId",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > FindResolvedV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "findId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "findId",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`contracts (privacy boundaries) > FindStatus 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

@@ -141,7 +141,27 @@ email → SMS → voice and ends in `expired`.
 
 ---
 
-## 8. Language switching
+## 8. Caregiver alert handling (§5.7)
+
+1. Submit a finder report (§5), then sign in as the tag's caregiver and open
+   `/caregiver/finds`.
+   - **Expect:** the find listed with status **Reported**, location, message, and a
+     reports count. Use the tag filter (top-left) — only that tag's finds remain,
+     including closed ones.
+2. Click **Acknowledge** → status becomes **Acknowledged**; the escalation chain stops.
+3. Click **Mark resolved** → status **Resolved**; the row stays in the history.
+4. On a new report, click **False alarm** → status **False alarm**.
+   - **Expect:** re-submitting a find from the same browser/IP within ~1 hour is
+     rejected (`rate_limited`); a different network/IP still goes through.
+5. Another caregiver visiting the same find's actions gets 404 (ownership check is
+   covered by automated tests).
+
+**Pass:** history per tag works, all three actions change status visibly, and the
+false-alarm throttle blocks the same fingerprint only.
+
+---
+
+## 9. Language switching
 
 1. Use the top-right toggle on any page — it cycles **English → Español → Português**.
    - **Expect:** all visible copy switches language on each click; no layout break,
@@ -155,7 +175,7 @@ email → SMS → voice and ends in `expired`.
 
 ---
 
-## 9. Universal-link manifests (smoke)
+## 10. Universal-link manifests (smoke)
 
 - `GET /.well-known/apple-app-site-association` → `200`, JSON `{"applinks":{"apps":[],"details":[]}}`.
 - `GET /.well-known/assetlinks.json` → `200`, `[]`.
@@ -176,4 +196,6 @@ email → SMS → voice and ends in `expired`.
 - [ ] Fake email with ack link appears in the API log; POSTing the link shows "Recibido"
 - [ ] Repeat POST of the same ack link → 410
 - [ ] No response: SMS (~+5 min) then voice (~+10 min) follow, find ends `expired`
+- [ ] `/caregiver/finds` lists the find; Acknowledge / Mark resolved / False alarm change status
+- [ ] Re-submitting after a False alarm from the same IP is rate-limited (~1h)
 - [ ] Language toggle cycles English / Español / Português

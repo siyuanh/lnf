@@ -181,14 +181,19 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
   });
 
   // Open finds for this caregiver's tags, newest first, with collapse counts.
+  // ?tag=<code> scopes the history to one tag — in the current model the
+  // protected person is tag-scoped (personName on tag), so "history per
+  // protected person" (§5.7) maps to a per-tag filter.
   r.get("/finds", async (c) => {
     const caregiverId = c.get("caregiverId");
+    const tagCode = c.req.query("tag");
     const rows = await opts.db.execute(
       sql`select f.id, t.code as tag_code, f.status, f.location_kind, f.lat, f.lon,
                  f.address_text, f.finder_message, f.finder_contact, f.created_at,
                  (select count(*)::int from find c2 where c2.is_collapsed_into = f.id) as collapsed_count
           from find f join tag t on t.id = f.tag_id
           where t.caregiver_id = ${caregiverId} and f.is_collapsed_into is null
+            ${tagCode ? sql`and t.code = ${tagCode}` : sql``}
           order by f.created_at desc limit 100`,
     );
     return c.json({ finds: rows.map(toCaregiverFindSummary) });
@@ -223,6 +228,42 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
     }
     return c.json({ ok: true });
   });
+
+  // §5.7 terminal caregiver marks. resolve = person recovered; false-positive =
+  // test/malicious scan (its fingerprint is throttled on the public route).
+  // Both are terminal-from-anything transitions (an expired find can still be
+  // closed by the caregiver) and idempotent: re-marking a closed find is ok.
+  // resolved_at doubles as the "caregiver closed at" timestamp for both.
+  for (const mark of ["resolve", "false-positive"] as const) {
+    r.post(`/finds/:id/${mark}`, async (c) => {
+      const caregiverId = c.get("caregiverId");
+      const findId = c.req.param("id");
+      const owned = await opts.db
+        .select({ id: find.id, status: find.status })
+        .from(find)
+        .innerJoin(tag, eq(find.tagId, tag.id))
+        .where(and(eq(find.id, findId), eq(tag.caregiverId, caregiverId)))
+        .limit(1);
+      if (owned.length === 0) return c.json({ error: "not_found" }, 404);
+      const CLOSABLE = ["reported", "acknowledged", "claimed", "expired"];
+      if (CLOSABLE.includes(owned[0]!.status)) {
+        const resolved = mark === "resolve";
+        await opts.db.transaction(async (tx) => {
+          await tx
+            .update(find)
+            .set({ status: resolved ? "resolved" : "false_positive", resolvedAt: new Date() })
+            .where(eq(find.id, findId));
+          await logAuditEvent(tx, {
+            kind: resolved ? "find.resolved" : "find.false_positive",
+            caregiverId,
+            findId,
+            payload: { v: 1, findId },
+          });
+        });
+      }
+      return c.json({ ok: true });
+    });
+  }
 
   // List the tags this caregiver has registered. Left-joins the linked contact
   // so the list renders in one round trip. Scoped to caregiverId — a caregiver

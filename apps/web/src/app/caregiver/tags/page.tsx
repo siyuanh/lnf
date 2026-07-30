@@ -34,9 +34,12 @@ export default function TagsPage() {
     <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <h1>{t("tags.title")}</h1>
-        <Link href="/caregiver/contacts" style={{ fontSize: 13 }}>
-          {t("tags.linkToContacts")}
-        </Link>
+        <span style={{ fontSize: 13 }}>
+          <Link href="/caregiver/finds" style={{ marginRight: 12 }}>
+            {t("tags.linkToFinds")}
+          </Link>
+          <Link href="/caregiver/contacts">{t("tags.linkToContacts")}</Link>
+        </span>
       </div>
       <p style={{ color: "#555", fontSize: 14 }}>{t("tags.subtitle")}</p>
 

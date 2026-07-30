@@ -103,6 +103,22 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
 
     const fingerprint = clientFingerprint(c, opts.fingerprintSalt);
 
+    if (fingerprint) {
+      // §5.7: a false-positive mark temporarily rate-limits further finds on
+      // the same tag from the same finder fingerprint. The 1h window runs from
+      // the mark (resolved_at); a plain query — design §3.7's rate-limit
+      // framework (rate_limit_bucket) is a Phase 2 item.
+      const blocked = await opts.db.execute(
+        sql`select id from find
+            where tag_id = ${t.id}
+              and finder_fingerprint = ${fingerprint}
+              and status = 'false_positive'
+              and resolved_at > now() - interval '1 hour'
+            limit 1`,
+      );
+      if (blocked.length > 0) return c.json({ error: "rate_limited" }, 429);
+    }
+
     const inserted = await opts.db.transaction(async (tx) => {
       // §4.2 #10: an open find (reported/acknowledged/claimed) younger than 5
       // minutes on this tag absorbs follow-up submissions. Collapsed finds are

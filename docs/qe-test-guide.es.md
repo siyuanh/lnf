@@ -142,7 +142,27 @@ correo → SMS → voz y termina en `expired`.
 
 ---
 
-## 8. Cambio de idioma
+## 8. Manejo de alertas del cuidador (§5.7)
+
+1. Envía un reporte de hallazgo (§5), luego inicia sesión como el cuidador de la
+   etiqueta y abre `/caregiver/finds`.
+   - **Se espera:** el hallazgo listado con estado **Reportado**, ubicación, mensaje y
+     conteo de reportes. Usa el filtro de etiquetas (arriba a la izquierda) — solo
+     quedan los hallazgos de esa etiqueta, incluidos los cerrados.
+2. Haz clic en **Confirmar** → el estado cambia a **Confirmado**; la cadena de escalada se detiene.
+3. Haz clic en **Marcar resuelto** → estado **Resuelto**; la fila permanece en el historial.
+4. En un nuevo reporte, haz clic en **Falsa alarma** → estado **Falsa alarma**.
+   - **Se espera:** reenviar un hallazgo desde el mismo navegador/IP dentro de ~1 hora
+     es rechazado (`rate_limited`); otra red/IP sí pasa.
+5. Otro cuidador que intente actuar sobre el mismo hallazgo recibe 404 (la verificación
+   de propiedad está cubierta por pruebas automatizadas).
+
+**Aprobado:** el historial por etiqueta funciona, las tres acciones cambian el estado
+visiblemente, y el límite por falsa alarma bloquea solo la misma huella.
+
+---
+
+## 9. Cambio de idioma
 
 1. Usa el conmutador superior derecho en cualquier página — alterna **English → Español → Português**.
    - **Se espera:** todo el texto visible cambia de idioma en cada clic; sin romper el diseño,
@@ -156,7 +176,7 @@ correo → SMS → voz y termina en `expired`.
 
 ---
 
-## 9. Manifiestos de enlaces universales (smoke)
+## 10. Manifiestos de enlaces universales (smoke)
 
 - `GET /.well-known/apple-app-site-association` → `200`, JSON `{"applinks":{"apps":[],"details":[]}}`.
 - `GET /.well-known/assetlinks.json` → `200`, `[]`.
@@ -177,4 +197,6 @@ correo → SMS → voz y termina en `expired`.
 - [ ] El correo falso con enlace de confirmación aparece en el log de la API; al hacer POST el enlace muestra "Recibido"
 - [ ] Repetir el POST del mismo enlace → 410
 - [ ] Sin respuesta: llegan SMS (~+5 min) y voz (~+10 min), el hallazgo termina `expired`
+- [ ] `/caregiver/finds` lista el hallazgo; Confirmar / Marcar resuelto / Falsa alarma cambian el estado
+- [ ] Reenviar tras una Falsa alarma desde la misma IP está limitado (~1h)
 - [ ] El conmutador de idioma alterna English / Español / Português
