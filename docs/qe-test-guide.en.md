@@ -5,7 +5,7 @@ feature end-to-end. Spanish version: [`qe-test-guide.es.md`](./qe-test-guide.es.
 
 - **Production URL:** https://lnf-765895908568.southamerica-west1.run.app
 - **Local:** http://localhost:3000 (run `pnpm dev`)
-- **Language toggle:** top-right switcher (English / Español), auto-detects browser locale.
+- **Language toggle:** top-right switcher cycles English / Español / Português; auto-detects browser locale (pt/pt-BR/pt-PT all map to Português; unsupported languages fall back to Español).
 
 ## Test accounts (production)
 
@@ -143,11 +143,15 @@ email → SMS → voice and ends in `expired`.
 
 ## 8. Language switching
 
-1. Use the top-right toggle on any page.
-   - **Expect:** all visible copy switches between English and Spanish; no layout break,
+1. Use the top-right toggle on any page — it cycles **English → Español → Português**.
+   - **Expect:** all visible copy switches language on each click; no layout break,
      no missing keys (raw `something.key` text).
+2. With a browser set to Portuguese (pt-BR), open the site signed-out in a private
+   window (no locale cookie).
+   - **Expect:** pages render in Portuguese by default; same for Spanish (es) and
+     English (en). Any other browser language falls back to Spanish (§5.9).
 
-**Pass:** both languages render fully.
+**Pass:** all three languages render fully; header detection works per browser language.
 
 ---
 
@@ -172,4 +176,4 @@ email → SMS → voice and ends in `expired`.
 - [ ] Fake email with ack link appears in the API log; POSTing the link shows "Recibido"
 - [ ] Repeat POST of the same ack link → 410
 - [ ] No response: SMS (~+5 min) then voice (~+10 min) follow, find ends `expired`
-- [ ] Language toggle works
+- [ ] Language toggle cycles English / Español / Português

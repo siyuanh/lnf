@@ -5,7 +5,7 @@ funcionalidad publicada de principio a fin. Versión en inglés: [`qe-test-guide
 
 - **URL de producción:** https://lnf-765895908568.southamerica-west1.run.app
 - **Local:** http://localhost:3000 (ejecuta `pnpm dev`)
-- **Selector de idioma:** conmutador superior derecho (English / Español); detecta el idioma del navegador.
+- **Selector de idioma:** el conmutador superior derecho alterna English / Español / Português; detecta el idioma del navegador (pt/pt-BR/pt-PT se mapean a Português; idiomas no soportados caen a Español).
 
 ## Cuentas de prueba (producción)
 
@@ -144,11 +144,15 @@ correo → SMS → voz y termina en `expired`.
 
 ## 8. Cambio de idioma
 
-1. Usa el conmutador superior derecho en cualquier página.
-   - **Se espera:** todo el texto visible cambia entre inglés y español; sin romper el diseño,
+1. Usa el conmutador superior derecho en cualquier página — alterna **English → Español → Português**.
+   - **Se espera:** todo el texto visible cambia de idioma en cada clic; sin romper el diseño,
      sin claves faltantes (texto crudo tipo `algo.clave`).
+2. Con el navegador en portugués (pt-BR), abre el sitio sin sesión en una ventana
+   privada (sin cookie de idioma).
+   - **Se espera:** las páginas se muestran en portugués por defecto; igual para
+     español (es) e inglés (en). Cualquier otro idioma del navegador cae a español (§5.9).
 
-**Aprobado:** ambos idiomas se muestran completos.
+**Aprobado:** los tres idiomas se muestran completos; la detección por encabezado funciona según el idioma del navegador.
 
 ---
 
@@ -173,4 +177,4 @@ correo → SMS → voz y termina en `expired`.
 - [ ] El correo falso con enlace de confirmación aparece en el log de la API; al hacer POST el enlace muestra "Recibido"
 - [ ] Repetir el POST del mismo enlace → 410
 - [ ] Sin respuesta: llegan SMS (~+5 min) y voz (~+10 min), el hallazgo termina `expired`
-- [ ] El cambio de idioma funciona
+- [ ] El conmutador de idioma alterna English / Español / Português

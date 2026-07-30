@@ -3,14 +3,17 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, type Locale, tFor } from "./dic
 
 export function pickLocale(cookieValue: string | undefined, acceptLanguage: string | null): Locale {
   if (cookieValue && (LOCALES as readonly string[]).includes(cookieValue)) return cookieValue as Locale;
-  // Accept-Language: pick the highest-q-weighted tag whose primary subtag we support.
-  // Browsers send things like "es-CO,es;q=0.9,en;q=0.8" — split on comma, strip q-values,
-  // take the first known primary subtag.
+  // Accept-Language: pick the highest-q-weighted tag whose primary subtag we
+  // support. Browsers send things like "es-CO,es;q=0.9,en;q=0.8" — split on
+  // comma, strip q-values, match on primary subtag so pt, pt-BR and pt-PT all
+  // resolve to our pt-BR table.
   if (acceptLanguage) {
     for (const part of acceptLanguage.split(",")) {
       const tag = part.split(";")[0]!.trim().toLowerCase();
       const primary = tag.split("-")[0];
-      if (primary && (LOCALES as readonly string[]).includes(primary)) return primary as Locale;
+      for (const locale of LOCALES) {
+        if (primary && primary === locale.toLowerCase().split("-")[0]) return locale;
+      }
     }
   }
   return DEFAULT_LOCALE;

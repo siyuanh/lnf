@@ -14,9 +14,15 @@ const EN = {
   text: (p: AlertParams) =>
     `Someone reported finding ${p.personLabel} (${p.locationText}). Acknowledge this alert: ${p.ackUrl}`,
 };
+const PT_BR = {
+  subject: (p: AlertParams) => `Alerta LNF: reportaram ${p.personLabel}`,
+  text: (p: AlertParams) =>
+    `Alguém reportou ${p.personLabel} (${p.locationText}). Confirme o recebimento deste alerta: ${p.ackUrl}`,
+};
 
-// pt-BR lands with the i18n follow-up; es is the LATAM default (§5.9).
-export function renderAlert(locale: "es" | "en", p: AlertParams): { subject: string; text: string } {
-  const t = locale === "en" ? EN : ES;
+// es is the LATAM default (§5.9); the handler still sends es until a caregiver
+// locale preference lands (follow-up) — pt-BR/en are wired for that switch.
+export function renderAlert(locale: "es" | "en" | "pt-BR", p: AlertParams): { subject: string; text: string } {
+  const t = locale === "en" ? EN : locale === "pt-BR" ? PT_BR : ES;
   return { subject: t.subject(p), text: t.text(p) };
 }
