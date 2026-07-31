@@ -21,18 +21,23 @@ export interface CaregiverRouterOpts {
 
 // Maps a raw snake_case find+tag row (GET /finds) into the shared
 // CaregiverFindSummary contract shape (camelCase, ISO createdAt).
+// §5.6: the finder's contact is revealed to the caregiver only after
+// acknowledgement — pre-ack rows (reported/expired/false_positive) null it out.
+const CONTACT_VISIBLE: ReadonlySet<string> = new Set(["acknowledged", "claimed", "resolved"]);
+
 function toCaregiverFindSummary(r: Record<string, unknown>) {
   const createdAt = r["created_at"];
+  const status = r["status"] as "reported" | "acknowledged" | "claimed" | "resolved" | "false_positive" | "expired";
   return {
     id: r["id"] as string,
     tagCode: r["tag_code"] as string,
-    status: r["status"] as "reported" | "acknowledged" | "claimed" | "resolved" | "false_positive" | "expired",
+    status,
     locationKind: r["location_kind"] as "gps" | "address",
     lat: (r["lat"] as string | null) ?? null,
     lon: (r["lon"] as string | null) ?? null,
     addressText: (r["address_text"] as string | null) ?? null,
     finderMessage: (r["finder_message"] as string | null) ?? null,
-    finderContact: (r["finder_contact"] as string | null) ?? null,
+    finderContact: CONTACT_VISIBLE.has(status) ? ((r["finder_contact"] as string | null) ?? null) : null,
     createdAt: createdAt instanceof Date ? createdAt.toISOString() : String(createdAt),
     collapsedCount: r["collapsed_count"] as number,
   };

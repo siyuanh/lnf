@@ -140,6 +140,27 @@ describe("caregiver alert handling (§5.7)", () => {
     expect(audits[0]!.payload).toMatchObject({ v: 1, findId: f.id });
   });
 
+  it("finder contact stays hidden until acknowledgement (§5.6)", async () => {
+    const { cookie } = await provision(app, "privacy@test.dev");
+    await seedRegisteredTag("PRV1");
+    await pairTag(app, cookie, "PRV1");
+    const f = await seedFindOnTag("PRV1", { finderContact: "+521550000000" });
+
+    const before = await (
+      await app.request("/api/caregiver/finds", { headers: { cookie } })
+    ).json() as { finds: { finderContact: string | null; status: string }[] };
+    expect(before.finds[0]!.status).toBe("reported");
+    expect(before.finds[0]!.finderContact).toBeNull();
+
+    const ack = await app.request(`/api/caregiver/finds/${f.id}/ack`, { method: "POST", headers: { cookie } });
+    expect(ack.status).toBe(200);
+
+    const after = await (
+      await app.request("/api/caregiver/finds", { headers: { cookie } })
+    ).json() as { finds: { finderContact: string | null }[] };
+    expect(after.finds[0]!.finderContact).toBe("+521550000000");
+  });
+
   it("caregiver B cannot resolve caregiver A's find (404)", async () => {
     const { cookie: cookieA } = await provision(app, "owna@test.dev");
     await seedRegisteredTag("OWN1");

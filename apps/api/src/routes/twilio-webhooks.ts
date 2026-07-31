@@ -29,7 +29,9 @@ export function twilioWebhookRouter(opts: TwilioWebhookRouterOpts) {
   r.post("/voice-ack", async (c) => {
     const attemptId = c.req.query("attempt") ?? "";
     const token = c.req.query("token") ?? "";
-    const tries = Number(c.req.query("tries") ?? "1");
+    // Garbage (or NaN) counters restart at 1 — otherwise tries=NaN would loop
+    // the re-prompt forever without ever reaching the hang-up branch.
+    const tries = Number(c.req.query("tries") ?? "1") || 1;
     if (verifyAckAttempt(token, opts.ackSecret) !== attemptId) {
       return c.text("unauthorized", 401);
     }

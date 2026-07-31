@@ -16,7 +16,10 @@ export async function recordSpend(db: DbExecutor, caregiverId: string, kind: "sm
   if (cost <= 0) return;
   await db
     .insert(spendLedger)
-    .values({ caregiverId, day: new Date().toISOString().slice(0, 10), kind, costMinorUnits: cost, countryCode })
+    // DB-time day on the write path too — spendToday() reads by current_date,
+    // and JS-UTC vs DB-day skew would let the cap check miss spend around
+    // midnight.
+    .values({ caregiverId, day: sql`current_date::text`, kind, costMinorUnits: cost, countryCode })
     .onConflictDoUpdate({
       target: [spendLedger.caregiverId, spendLedger.day, spendLedger.kind],
       set: { costMinorUnits: sql`${spendLedger.costMinorUnits} + ${cost}` },

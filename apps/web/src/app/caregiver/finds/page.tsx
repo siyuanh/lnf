@@ -128,7 +128,12 @@ export default function FindsPage() {
                 </td>
                 <td style={{ fontFamily: "monospace" }}>{f.tagCode}</td>
                 <td>{f.locationKind === "address" ? f.addressText : `${t("finds.locationGps")} (${f.lat}, ${f.lon})`}</td>
-                <td style={{ color: "#555" }}>{f.finderMessage ?? "—"}</td>
+                <td style={{ color: "#555" }}>
+                  {f.finderMessage ?? "—"}
+                  {f.finderContact && (
+                    <span style={{ display: "block", fontSize: 12, color: "#333" }}>{f.finderContact}</span>
+                  )}
+                </td>
                 <td>
                   <span
                     style={{

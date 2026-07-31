@@ -69,6 +69,23 @@ describe("POST /api/webhooks/twilio/voice-ack", () => {
     expect(body).toContain("tries=3"); // third and final attempt
   });
 
+  it("garbage retry counter restarts at 1 instead of looping on NaN", async () => {
+    const { attemptId } = await seedVoiceAttempt();
+    const token = signAckAttempt(attemptId, process.env.BETTER_AUTH_SECRET!);
+    const res = await app.request(
+      `/api/webhooks/twilio/voice-ack?attempt=${attemptId}&tries=garbage&token=${encodeURIComponent(token)}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ Digits: "9" }).toString(),
+      },
+    );
+    const body = await res.text();
+    expect(body).toContain("Gather");
+    expect(body).toContain("tries=2");
+    expect(body).not.toContain("NaN");
+  });
+
   it("bad token returns 401 and no TwiML", async () => {
     const { attemptId } = await seedVoiceAttempt();
     const res = await app.request(`/api/webhooks/twilio/voice-ack?attempt=${attemptId}&token=bogus`, {
