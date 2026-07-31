@@ -176,7 +176,26 @@ visiblemente, y el límite por falsa alarma bloquea solo la misma huella.
 
 ---
 
-## 10. Manifiestos de enlaces universales (smoke)
+## 10. Exportación de datos y eliminación de cuenta (LGPD, §5.6)
+
+1. Inicia sesión como un cuidador con datos (contacto, etiqueta, al menos un
+   hallazgo) y abre `/caregiver/account`.
+2. Haz clic en **Descargar exportación** → se descarga un archivo JSON.
+   - **Se espera:** contiene tu cuenta, contactos, personas, etiquetas, hallazgos,
+     canales y gastos — y nada que pertenezca a otro cuidador.
+3. En **Eliminar cuenta**, ingresa una contraseña incorrecta → **Se espera:** un
+   error; no se elimina nada.
+4. Ingresa tu contraseña real y confirma.
+   - **Se espera:** quedas fuera de sesión en la página inicial; para volver a
+     entrar debes crear una cuenta nueva (la anterior, con sus contactos, etiquetas
+     y hallazgos, ya no existe).
+
+**Aprobado:** la exportación es completa y limitada al titular; la contraseña
+incorrecta bloquea la eliminación; la correcta elimina todo y cierra la sesión.
+
+---
+
+## 11. Manifiestos de enlaces universales (smoke)
 
 - `GET /.well-known/apple-app-site-association` → `200`, JSON `{"applinks":{"apps":[],"details":[]}}`.
 - `GET /.well-known/assetlinks.json` → `200`, `[]`.
@@ -199,4 +218,5 @@ visiblemente, y el límite por falsa alarma bloquea solo la misma huella.
 - [ ] Sin respuesta: llegan SMS (~+5 min) y voz (~+10 min), el hallazgo termina `expired`
 - [ ] `/caregiver/finds` lista el hallazgo; Confirmar / Marcar resuelto / Falsa alarma cambian el estado
 - [ ] Reenviar tras una Falsa alarma desde la misma IP está limitado (~1h)
+- [ ] `/caregiver/account` exporta tus datos; eliminar con contraseña los borra
 - [ ] El conmutador de idioma alterna English / Español / Português

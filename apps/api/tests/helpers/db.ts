@@ -4,6 +4,7 @@ import {
   auditEvent,
   caregiver,
   caregiverContact,
+  device,
   find,
   notificationAttempt,
   notificationChannel,
@@ -46,6 +47,7 @@ export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string,
   await db.delete(notificationAttempt);
   await db.delete(notificationChannel);
   await db.delete(spendLedger);
+  await db.delete(device);
   await db.delete(find);
   await db.delete(tag);
   await db.delete(tagBatch);

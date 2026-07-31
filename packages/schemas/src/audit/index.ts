@@ -4,6 +4,8 @@ export { FindAcknowledgedV1 } from "./find.acknowledged.v1.js";
 export { FindExpiredV1 } from "./find.expired.v1.js";
 export { FindResolvedV1 } from "./find.resolved.v1.js";
 export { FindFalsePositiveV1 } from "./find.false_positive.v1.js";
+export { CaregiverExportedDataV1 } from "./caregiver.exported_data.v1.js";
+export { CaregiverDeletedAccountV1 } from "./caregiver.deleted_account.v1.js";
 
 export const AuditKinds = {
   partnerBatchMinted: "partner.batch.minted",
@@ -22,6 +24,8 @@ export const AuditKinds = {
   caregiverContactCreated: "caregiver.contact.created",
   caregiverContactUpdated: "caregiver.contact.updated",
   caregiverContactDeleted: "caregiver.contact.deleted",
+  caregiverExportedData: "caregiver.exported_data",
+  caregiverDeletedAccount: "caregiver.deleted_account",
 } as const;
 
 export type AuditKind = (typeof AuditKinds)[keyof typeof AuditKinds];

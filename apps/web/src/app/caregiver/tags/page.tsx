@@ -38,6 +38,9 @@ export default function TagsPage() {
           <Link href="/caregiver/finds" style={{ marginRight: 12 }}>
             {t("tags.linkToFinds")}
           </Link>
+          <Link href="/caregiver/account" style={{ marginRight: 12 }}>
+            {t("tags.linkToAccount")}
+          </Link>
           <Link href="/caregiver/contacts">{t("tags.linkToContacts")}</Link>
         </span>
       </div>

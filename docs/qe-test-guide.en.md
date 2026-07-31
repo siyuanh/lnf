@@ -175,7 +175,25 @@ false-alarm throttle blocks the same fingerprint only.
 
 ---
 
-## 10. Universal-link manifests (smoke)
+## 10. LGPD data export & account deletion (§5.6)
+
+1. Sign in as a caregiver with data (contact, tag, at least one find) and open
+   `/caregiver/account`.
+2. Click **Download export** → a JSON file downloads.
+   - **Expect:** it contains your account, contacts, persons, tags, finds,
+     channels and spend — and nothing belonging to another caregiver.
+3. In **Delete account**, enter a wrong password → **Expect:** an error; nothing
+   is deleted.
+4. Enter your real password and confirm.
+   - **Expect:** you land signed-out on the home page; signing back in requires
+     creating a new account (the old one, its contacts, tags and finds are gone).
+
+**Pass:** export is complete and subject-scoped; wrong password blocks deletion;
+a correct password deletes everything and ends the session.
+
+---
+
+## 11. Universal-link manifests (smoke)
 
 - `GET /.well-known/apple-app-site-association` → `200`, JSON `{"applinks":{"apps":[],"details":[]}}`.
 - `GET /.well-known/assetlinks.json` → `200`, `[]`.
@@ -198,4 +216,5 @@ false-alarm throttle blocks the same fingerprint only.
 - [ ] No response: SMS (~+5 min) then voice (~+10 min) follow, find ends `expired`
 - [ ] `/caregiver/finds` lists the find; Acknowledge / Mark resolved / False alarm change status
 - [ ] Re-submitting after a False alarm from the same IP is rate-limited (~1h)
+- [ ] `/caregiver/account` export downloads your data; delete with password wipes it
 - [ ] Language toggle cycles English / Español / Português

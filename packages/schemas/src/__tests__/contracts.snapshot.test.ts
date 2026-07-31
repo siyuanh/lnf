@@ -13,6 +13,8 @@ import {
   FindExpiredV1,
   FindResolvedV1,
   FindFalsePositiveV1,
+  CaregiverExportedDataV1,
+  CaregiverDeletedAccountV1,
 } from "../index.js";
 import { FindCreatedV1 } from "../audit/find.created.v1.js";
 
@@ -55,5 +57,11 @@ describe("contracts (privacy boundaries)", () => {
   });
   it("FindFalsePositiveV1", () => {
     expect(zodToJsonSchema(FindFalsePositiveV1)).toMatchSnapshot();
+  });
+  it("CaregiverExportedDataV1", () => {
+    expect(zodToJsonSchema(CaregiverExportedDataV1)).toMatchSnapshot();
+  });
+  it("CaregiverDeletedAccountV1", () => {
+    expect(zodToJsonSchema(CaregiverDeletedAccountV1)).toMatchSnapshot();
   });
 });

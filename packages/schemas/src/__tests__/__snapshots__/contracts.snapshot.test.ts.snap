@@ -1,5 +1,49 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`contracts (privacy boundaries) > CaregiverDeletedAccountV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "caregiverId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "caregiverId",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`contracts (privacy boundaries) > CaregiverExportedDataV1 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "caregiverId": {
+      "format": "uuid",
+      "type": "string",
+    },
+    "v": {
+      "const": 1,
+      "type": "number",
+    },
+  },
+  "required": [
+    "v",
+    "caregiverId",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`contracts (privacy boundaries) > CaregiverFindSummary 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

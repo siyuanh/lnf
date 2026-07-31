@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   ContactCreateRequest,
   ContactUpdateRequest,
@@ -8,7 +9,17 @@ import {
   TagPairRequest,
 } from "@app/schemas";
 import type { Db } from "../db/client.js";
-import { caregiverContact, find, protectedPerson, tag } from "../db/schema.js";
+import {
+  caregiverContact,
+  device,
+  find,
+  notificationAttempt,
+  notificationChannel,
+  protectedPerson,
+  spendLedger,
+  tag,
+  user,
+} from "../db/schema.js";
 import { logAuditEvent } from "../audit/log.js";
 import { ensureDefaultChannels } from "../notify/channels.js";
 import { makeCaregiverSessionMiddleware } from "../auth/caregiver-session.js";
@@ -51,6 +62,103 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
       caregiverId: c.get("caregiverId"),
       email: c.get("caregiverEmail"),
     }),
+  );
+
+  // §5.6 LGPD: full-fidelity export of everything stored about this caregiver.
+  // All rows are the data subject's own — nothing is redacted. Soft-deleted
+  // contacts are included with their deletedAt marker for fidelity.
+  r.get("/export", async (c) => {
+    const caregiverId = c.get("caregiverId");
+    const userId = c.get("caregiverUserId");
+    const [account] = await opts.db
+      .select({ email: user.email, name: user.name, phone: user.phone, createdAt: user.createdAt })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    const contacts = await opts.db.select().from(caregiverContact).where(eq(caregiverContact.caregiverId, caregiverId));
+    const people = await opts.db.select().from(protectedPerson).where(eq(protectedPerson.caregiverId, caregiverId));
+    const tags = await opts.db.select().from(tag).where(eq(tag.caregiverId, caregiverId));
+    const tagIds = tags.map((t) => t.id);
+    const finds =
+      tagIds.length === 0 ? [] : await opts.db.select().from(find).where(inArray(find.tagId, tagIds));
+    const channels = await opts.db.select().from(notificationChannel).where(eq(notificationChannel.caregiverId, caregiverId));
+    const devices = await opts.db.select().from(device).where(eq(device.caregiverId, caregiverId));
+    const spend = await opts.db.select().from(spendLedger).where(eq(spendLedger.caregiverId, caregiverId));
+
+    await opts.db.transaction(async (tx) => {
+      await logAuditEvent(tx, {
+        kind: "caregiver.exported_data",
+        caregiverId,
+        payload: { v: 1, caregiverId },
+      });
+    });
+
+    const body = {
+      v: 1 as const,
+      exportedAt: new Date().toISOString(),
+      account: account ?? null,
+      contacts,
+      protectedPersons: people,
+      tags,
+      finds,
+      notificationChannels: channels,
+      devices,
+      spendLedger: spend,
+    };
+    return new Response(JSON.stringify(body, null, 2), {
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "content-disposition": `attachment; filename="lnf-export-${body.exportedAt.slice(0, 10)}.json"`,
+      },
+    });
+  });
+
+  // §5.6 LGPD: irreversible account deletion. Password confirmation gates
+  // intent; the audit row is written BEFORE the cascade and survives it
+  // (audit_event has no FKs by design — the trail outlives the subject).
+  r.post(
+    "/account/delete",
+    zValidator("json", z.object({ password: z.string().min(1) })),
+    async (c) => {
+      const caregiverId = c.get("caregiverId");
+      const userId = c.get("caregiverUserId");
+      const email = c.get("caregiverEmail");
+      const { password } = c.req.valid("json");
+
+      try {
+        await opts.auth.api.signInEmail({ body: { email, password } });
+      } catch {
+        return c.json({ error: "password_incorrect" }, 403);
+      }
+
+      await opts.db.transaction(async (tx) => {
+        await logAuditEvent(tx, {
+          kind: "caregiver.deleted_account",
+          caregiverId,
+          payload: { v: 1, caregiverId },
+        });
+        const tagRows = await tx.select({ id: tag.id }).from(tag).where(eq(tag.caregiverId, caregiverId));
+        const tagIds = tagRows.map((t) => t.id);
+        if (tagIds.length > 0) {
+          const findRows = await tx.select({ id: find.id }).from(find).where(inArray(find.tagId, tagIds));
+          const findIds = findRows.map((f) => f.id);
+          if (findIds.length > 0) {
+            await tx.delete(notificationAttempt).where(inArray(notificationAttempt.findId, findIds));
+          }
+          await tx.delete(find).where(inArray(find.tagId, tagIds));
+        }
+        await tx.delete(notificationChannel).where(eq(notificationChannel.caregiverId, caregiverId));
+        await tx.delete(spendLedger).where(eq(spendLedger.caregiverId, caregiverId));
+        await tx.delete(device).where(eq(device.caregiverId, caregiverId));
+        await tx.delete(tag).where(eq(tag.caregiverId, caregiverId));
+        await tx.delete(caregiverContact).where(eq(caregiverContact.caregiverId, caregiverId));
+        await tx.delete(protectedPerson).where(eq(protectedPerson.caregiverId, caregiverId));
+        // Deleting the Better-Auth user cascades to caregiver, account and
+        // session rows — the request's own session dies with it.
+        await tx.delete(user).where(eq(user.id, userId));
+      });
+      return c.json({ ok: true });
+    },
   );
 
   r.get("/people", async (c) => {
