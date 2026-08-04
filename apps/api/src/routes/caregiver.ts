@@ -293,6 +293,50 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
     });
   });
 
+  // UC-6: retire a garment. CAS registered → deprecated so a retry or
+  // double-click is idempotent; an already-deprecated owned tag returns 200
+  // with the current state. The update is scoped by caregiverId, so a tag
+  // owned by someone else (or never paired) misses both the update and the
+  // fallback lookup → 404, no cross-account existence leak. From here on the
+  // public route rejects finds against the tag (409) and the finder page
+  // shows the "no longer active" copy — no further notifications.
+  r.post("/tags/:code/revoke", async (c) => {
+    const caregiverId = c.get("caregiverId");
+    const code = c.req.param("code");
+
+    const updated = await opts.db
+      .update(tag)
+      .set({ state: "deprecated", deprecatedAt: new Date() })
+      .where(
+        and(eq(tag.code, code), eq(tag.caregiverId, caregiverId), eq(tag.state, "registered")),
+      )
+      .returning({ code: tag.code, partnerId: tag.partnerId });
+
+    if (updated.length === 0) {
+      const existing = await opts.db
+        .select({ state: tag.state })
+        .from(tag)
+        .where(and(eq(tag.code, code), eq(tag.caregiverId, caregiverId)))
+        .limit(1);
+      if (!existing[0]) return c.json({ error: "not_found" }, 404);
+      if (existing[0].state === "deprecated") {
+        return c.json({ code, state: "deprecated" as const });
+      }
+      return c.json({ error: "conflict", state: existing[0].state }, 409);
+    }
+
+    await opts.db.transaction(async (tx) => {
+      await logAuditEvent(tx, {
+        kind: "tag.deprecated",
+        caregiverId,
+        partnerId: updated[0]!.partnerId,
+        payload: { v: 1, code, caregiverId },
+      });
+    });
+
+    return c.json({ code, state: "deprecated" as const });
+  });
+
   // Open finds for this caregiver's tags, newest first, with collapse counts.
   // ?tag=<code> scopes the history to one tag — in the current model the
   // protected person is tag-scoped (personName on tag), so "history per

@@ -22,6 +22,7 @@ interface RegisteredTag {
 export default function TagsPage() {
   const t = useT();
   const [tags, setTags] = useState<RegisteredTag[] | null>(null);
+  const [revoking, setRevoking] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/caregiver/tags", { credentials: "include" })
@@ -29,6 +30,23 @@ export default function TagsPage() {
       .then((data: { tags: RegisteredTag[] }) => setTags(data.tags))
       .catch(() => setTags([]));
   }, []);
+
+  async function revoke(code: string) {
+    if (!window.confirm(t("tags.revokeConfirm"))) return;
+    setRevoking(code);
+    try {
+      const res = await fetch(`/api/caregiver/tags/${encodeURIComponent(code)}/revoke`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setTags((prev) => prev?.filter((tag) => tag.code !== code) ?? prev);
+    } catch {
+      window.alert(t("tags.revokeFailed"));
+    } finally {
+      setRevoking(null);
+    }
+  }
 
   return (
     <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
@@ -72,9 +90,17 @@ export default function TagsPage() {
                 <td style={{ color: "#555" }}>{tag.label ?? "—"}</td>
                 <td style={{ color: "#555" }}>{contactSummary(tag.contact)}</td>
                 <td style={{ textAlign: "right" }}>
-                  <Link href={`/caregiver/tags/${encodeURIComponent(tag.code)}`}>
+                  <Link href={`/caregiver/tags/${encodeURIComponent(tag.code)}`} style={{ marginRight: 12 }}>
                     {t("tags.view")}
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => revoke(tag.code)}
+                    disabled={revoking === tag.code}
+                    style={{ color: "#b00020", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" }}
+                  >
+                    {t("tags.revoke")}
+                  </button>
                 </td>
               </tr>
             ))}

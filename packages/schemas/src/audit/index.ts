@@ -19,6 +19,7 @@ export const AuditKinds = {
   findFalsePositive: "find.false_positive",
   tagActivated: "tag.activated",
   tagRegistered: "tag.registered",
+  tagDeprecated: "tag.deprecated",
   caregiverSignup: "caregiver.signup",
   caregiverPersonCreated: "caregiver.person.created",
   caregiverContactCreated: "caregiver.contact.created",

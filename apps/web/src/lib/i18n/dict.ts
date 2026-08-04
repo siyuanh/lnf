@@ -203,6 +203,10 @@ export const dict = {
     "tags.colLabel": "Label",
     "tags.colContact": "Alerts",
     "tags.view": "View",
+    "tags.revoke": "Revoke",
+    "tags.revokeConfirm":
+      "Retire this tag? Scans will show “this tag is no longer active” and no alerts will be sent. This cannot be undone.",
+    "tags.revokeFailed": "Could not revoke the tag. Refresh and try again.",
 
     "tagDetail.back": "← Back to tags",
     "tagDetail.loading": "Loading…",
@@ -456,6 +460,10 @@ export const dict = {
     "tags.colLabel": "Etiqueta",
     "tags.colContact": "Avisos",
     "tags.view": "Ver",
+    "tags.revoke": "Revocar",
+    "tags.revokeConfirm":
+      "¿Retirar esta etiqueta? Los escaneos mostrarán «esta etiqueta ya no está activa» y no se enviarán alertas. No se puede deshacer.",
+    "tags.revokeFailed": "No se pudo revocar la etiqueta. Actualiza la página e inténtalo de nuevo.",
 
     "tagDetail.back": "← Volver a etiquetas",
     "tagDetail.loading": "Cargando…",
@@ -709,6 +717,10 @@ export const dict = {
     "tags.colLabel": "Etiqueta",
     "tags.colContact": "Avisos",
     "tags.view": "Ver",
+    "tags.revoke": "Revogar",
+    "tags.revokeConfirm":
+      "Retirar esta etiqueta? Os escaneamentos mostrarão “esta etiqueta não está mais ativa” e nenhum alerta será enviado. Não é possível desfazer.",
+    "tags.revokeFailed": "Não foi possível revogar a etiqueta. Atualize a página e tente novamente.",
 
     "tagDetail.back": "← Voltar às etiquetas",
     "tagDetail.loading": "Carregando…",
