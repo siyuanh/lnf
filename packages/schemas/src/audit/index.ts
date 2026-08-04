@@ -10,8 +10,10 @@ export { CaregiverDeletedAccountV1 } from "./caregiver.deleted_account.v1.js";
 export const AuditKinds = {
   partnerBatchMinted: "partner.batch.minted",
   partnerBatchCsvDownloaded: "partner.batch.csv_downloaded",
+  partnerBatchCsvRedownloaded: "partner.batch.csv_redownloaded",
   partnerApiKeyCreated: "partner.api_key.created",
   partnerApiKeyRevoked: "partner.api_key.revoked",
+  partnerSignup: "partner.signup",
   findCreated: "find.created",
   findAcknowledged: "find.acknowledged",
   findExpired: "find.expired",

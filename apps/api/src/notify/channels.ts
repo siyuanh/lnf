@@ -35,7 +35,7 @@ export async function ensureDefaultChannels(db: DbExecutor, caregiverId: string,
   const phones = await db
     .select({ value: caregiverContact.value })
     .from(caregiverContact)
-    .where(eq(caregiverContact.caregiverId, caregiverId))
+    .where(and(eq(caregiverContact.caregiverId, caregiverId), isNull(caregiverContact.deletedAt)))
     .limit(1);
   if (phones[0]) {
     await db.insert(notificationChannel).values([

@@ -43,10 +43,19 @@ export function twilioWebhookRouter(opts: TwilioWebhookRouterOpts) {
       .limit(1);
     if (rows.length === 0) return c.text("not found", 404);
 
+    // Already confirmed (re-press, or Twilio re-invoking the callback): say so
+    // instead of dropping into the retry loop, which would end with a wrong
+    // "we didn't receive confirmation" message for an acknowledged alert.
+    if (rows[0]!.usedAt !== null) {
+      return c.text(twiml(`<Say language="es-MX">Esta alerta ya fue confirmada. Gracias.</Say>`), {
+        headers: { "content-type": "text/xml" },
+      });
+    }
+
     const form = await c.req.parseBody();
     const digits = typeof form["Digits"] === "string" ? form["Digits"] : "";
 
-    if (digits === "1" && rows[0]!.usedAt === null) {
+    if (digits === "1") {
       const findId = rows[0]!.findId;
       await opts.db.transaction(async (tx) => {
         await tx

@@ -1,8 +1,9 @@
 import type { DbExecutor } from "../db/client.js";
+import type { AuditKind } from "@app/schemas";
 import { auditEvent } from "../db/schema.js";
 
 export interface AuditEventInput {
-  kind: string;
+  kind: AuditKind;
   caregiverId?: string | null;
   partnerId?: string | null;
   findId?: string | null;

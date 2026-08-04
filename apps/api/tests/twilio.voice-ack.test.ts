@@ -53,6 +53,27 @@ describe("POST /api/webhooks/twilio/voice-ack", () => {
     expect(f[0]!.status).toBe("acknowledged");
   });
 
+  it("re-press on an already-confirmed attempt says so instead of re-prompting", async () => {
+    const { attemptId } = await seedVoiceAttempt();
+    const token = signAckAttempt(attemptId, process.env.BETTER_AUTH_SECRET!);
+    const call = () =>
+      app.request(
+        `/api/webhooks/twilio/voice-ack?attempt=${attemptId}&token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ Digits: "1" }).toString(),
+        },
+      );
+    expect((await call()).status).toBe(200); // first press confirms
+
+    const second = await call();
+    expect(second.status).toBe(200);
+    const body = await second.text();
+    expect(body).toContain("ya fue confirmada");
+    expect(body).not.toContain("Gather");
+  });
+
   it("wrong digit re-prompts with a retry counter (§4.3 #24)", async () => {
     const { attemptId } = await seedVoiceAttempt();
     const token = signAckAttempt(attemptId, process.env.BETTER_AUTH_SECRET!);

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Task } from "graphile-worker";
 import type { Env } from "../env.js";
 import type { Db, DbExecutor } from "../db/client.js";
@@ -60,12 +60,16 @@ export function makeEscalateFindTask(deps: EscalationDeps): Task {
     const channels = await loadChannels(deps.db, caregiverId);
     const channel = channels[step];
     if (!channel) {
-      // Chain exhausted: terminal expired (§3.5 stop conditions).
+      // Chain exhausted: terminal expired (§3.5 stop conditions). CAS on
+      // status='reported' — a resolve/ack racing this invocation must not be
+      // overwritten, and only a transitioned row earns the audit event.
       await deps.db.transaction(async (tx) => {
-        await tx
+        const transitioned = await tx
           .update(find)
           .set({ status: "expired", expiredAt: new Date() })
-          .where(eq(find.id, findId));
+          .where(and(eq(find.id, findId), eq(find.status, "reported")))
+          .returning({ id: find.id });
+        if (transitioned.length === 0) return;
         const attempts = await tx
           .select({ id: notificationAttempt.id })
           .from(notificationAttempt)
