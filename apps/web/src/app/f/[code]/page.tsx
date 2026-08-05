@@ -102,10 +102,10 @@ export default async function FinderPage({ params }: PageProps) {
   const copy = COPY_FOR_STATE[state === "not_found" ? "inactive" : state];
 
   return (
-    <main style={{ maxWidth: 480, margin: "64px auto", fontFamily: "system-ui", textAlign: "center", padding: 16 }}>
-      <h1 style={{ fontSize: 24 }}>{t(copy.title)}</h1>
-      <p style={{ color: "#444" }}>{t(copy.body)}</p>
-      <p style={{ marginTop: 24, fontSize: 12, color: "#999", fontFamily: "monospace" }}>
+    <main className="mx-auto max-w-md px-4 py-16 text-center sm:py-20">
+      <h1 className="text-2xl font-bold tracking-tight text-navy-900">{t(copy.title)}</h1>
+      <p className="mt-3 leading-relaxed text-slate-600">{t(copy.body)}</p>
+      <p className="mt-10 font-mono text-xs text-slate-400">
         {t("finder.tag")}: {code}
       </p>
     </main>

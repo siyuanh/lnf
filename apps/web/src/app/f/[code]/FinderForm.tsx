@@ -1,6 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/i18n/use-t";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { LogoMark } from "@/components/Logo";
 
 type Gps = { lat: number; lon: number; accuracyM?: number };
 
@@ -83,100 +89,110 @@ export default function FinderForm({
 
   if (done) {
     return (
-      <main style={{ maxWidth: 480, margin: "64px auto", fontFamily: "system-ui", textAlign: "center", padding: 16 }}>
-        <h1>{t("finderReport.thanksTitle")}</h1>
-        <p style={{ color: "#444" }}>{t("finderReport.thanksBody")}</p>
+      <main className="mx-auto max-w-md px-4 py-16 text-center sm:py-20">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+          <svg viewBox="0 0 24 24" className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+        <h1 className="mt-6 text-2xl font-bold tracking-tight text-navy-900">{t("finderReport.thanksTitle")}</h1>
+        <p className="mt-3 leading-relaxed text-slate-600">{t("finderReport.thanksBody")}</p>
       </main>
     );
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "32px auto", fontFamily: "system-ui", padding: 16 }}>
-      <h1 style={{ fontSize: 22 }}>{t("finderReport.title")}</h1>
-      <p style={{ color: "#444" }}>{t("finderReport.intro")}</p>
+    <main className="mx-auto max-w-md px-4 py-8 sm:py-12">
+      <div className="text-center">
+        <LogoMark className="mx-auto h-12 w-12" />
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-navy-900">{t("finderReport.title")}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">{t("finderReport.intro")}</p>
+      </div>
 
       {(personName || personDetails) && (
-        <section
-          style={{
-            marginTop: 16,
-            padding: 16,
-            background: "#f0f7ff",
-            border: "1px solid #cfe3ff",
-            borderRadius: 8,
-          }}
-        >
-          {personName && (
-            <p style={{ margin: "0 0 6px", fontWeight: 600, fontSize: 18 }}>{personName}</p>
-          )}
-          {personDetails && (
-            <p style={{ margin: 0, color: "#334", whiteSpace: "pre-wrap" }}>{personDetails}</p>
-          )}
+        <section className="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <div className="flex items-start gap-3">
+            {personName && (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-navy-900 text-lg font-semibold text-white" aria-hidden>
+                {personName.trim().charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              {personName && <p className="text-lg font-semibold text-navy-900">{personName}</p>}
+              {personDetails && (
+                <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{personDetails}</p>
+              )}
+            </div>
+          </div>
         </section>
       )}
 
-      <form onSubmit={onSubmit} style={{ marginTop: 16 }}>
-        <div style={{ marginBottom: 16 }}>
-          <button
-            type="button"
-            onClick={captureGps}
-            disabled={gpsBusy}
-            style={{ padding: "8px 12px", width: "100%" }}
-          >
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-5">
+        <div>
+          <Button type="button" variant="outline" size="lg" onClick={captureGps} disabled={gpsBusy} className="w-full">
             {gpsBusy ? t("finderReport.gpsBusy") : t("finderReport.useGps")}
-          </button>
+          </Button>
           {gps && (
-            <p style={{ color: "green", fontSize: 13, marginTop: 6 }}>
+            <Alert variant="success" className="mt-2">
               {t("finderReport.gpsCaptured")} ({gps.lat.toFixed(5)}, {gps.lon.toFixed(5)})
-            </p>
+            </Alert>
           )}
           {gpsError && (
-            <p style={{ color: "crimson", fontSize: 13, marginTop: 6 }}>{t("finderReport.gpsError")}</p>
+            <Alert variant="destructive" className="mt-2">
+              {t("finderReport.gpsError")}
+            </Alert>
           )}
         </div>
 
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("finderReport.address")}{" "}
-          <span style={{ color: "#999", fontSize: 12 }}>{t("finderReport.addressHint")}</span>
-          <input
+        <div>
+          <Label htmlFor="finder-address">
+            {t("finderReport.address")}{" "}
+            <span className="font-normal text-slate-400">{t("finderReport.addressHint")}</span>
+          </Label>
+          <Input
+            id="finder-address"
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             maxLength={200}
-            style={{ display: "block", width: "100%", padding: 8 }}
           />
-        </label>
+        </div>
 
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("finderReport.message")}{" "}
-          <span style={{ color: "#999", fontSize: 12 }}>{t("finderReport.messageHint")}</span>
-          <textarea
+        <div>
+          <Label htmlFor="finder-message">
+            {t("finderReport.message")}{" "}
+            <span className="font-normal text-slate-400">{t("finderReport.messageHint")}</span>
+          </Label>
+          <Textarea
+            id="finder-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             maxLength={200}
             rows={3}
-            style={{ display: "block", width: "100%", padding: 8 }}
           />
-        </label>
+        </div>
 
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("finderReport.contact")}{" "}
-          <span style={{ color: "#999", fontSize: 12 }}>{t("finderReport.contactHint")}</span>
-          <input
+        <div>
+          <Label htmlFor="finder-contact">
+            {t("finderReport.contact")}{" "}
+            <span className="font-normal text-slate-400">{t("finderReport.contactHint")}</span>
+          </Label>
+          <Input
+            id="finder-contact"
             type="text"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             maxLength={120}
-            style={{ display: "block", width: "100%", padding: 8 }}
           />
-        </label>
+        </div>
 
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-        <button type="submit" disabled={submitting} style={{ padding: "8px 12px", width: "100%" }}>
+        {error && <Alert variant="destructive">{error}</Alert>}
+        <Button type="submit" variant="accent" size="lg" disabled={submitting} className="w-full">
           {submitting ? t("finderReport.submitting") : t("finderReport.submit")}
-        </button>
+        </Button>
       </form>
 
-      <p style={{ marginTop: 24, fontSize: 12, color: "#999", fontFamily: "monospace", textAlign: "center" }}>
+      <p className="mt-10 text-center font-mono text-xs text-slate-400">
         {t("finder.tag")}: {code}
       </p>
     </main>
