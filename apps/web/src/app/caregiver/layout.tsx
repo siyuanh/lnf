@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useT } from "@/lib/i18n/use-t";
+import { CaregiverNav } from "./_components/CaregiverNav";
 
 interface MeResponse {
   caregiverId: string;
@@ -43,34 +44,7 @@ export default function CaregiverLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      <header
-        style={{
-          position: "fixed",
-          top: 12,
-          right: 96,
-          zIndex: 99,
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          fontFamily: "system-ui",
-          fontSize: 13,
-        }}
-      >
-        {me && <span style={{ color: "#666" }}>{me.email}</span>}
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            padding: "4px 10px",
-            border: "1px solid #ccc",
-            borderRadius: 4,
-            background: "white",
-            cursor: "pointer",
-          }}
-        >
-          {t("header.logout")}
-        </button>
-      </header>
+      <CaregiverNav email={me?.email ?? null} onLogout={logout} />
       {children}
     </>
   );

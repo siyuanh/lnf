@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n/use-t";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ContactKind = "phone" | "email" | "address";
 interface TagContact {
@@ -49,63 +51,55 @@ export default function TagsPage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>{t("tags.title")}</h1>
-        <span style={{ fontSize: 13 }}>
-          <Link href="/caregiver/finds" style={{ marginRight: 12 }}>
-            {t("tags.linkToFinds")}
-          </Link>
-          <Link href="/caregiver/account" style={{ marginRight: 12 }}>
-            {t("tags.linkToAccount")}
-          </Link>
-          <Link href="/caregiver/contacts">{t("tags.linkToContacts")}</Link>
-        </span>
-      </div>
-      <p style={{ color: "#555", fontSize: 14 }}>{t("tags.subtitle")}</p>
+    <main className="mx-auto max-w-2xl px-4 py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-navy-900">{t("tags.title")}</h1>
+      <p className="mt-1 text-sm text-slate-600">{t("tags.subtitle")}</p>
 
-      {tags === null && <p>{t("tags.loading")}</p>}
+      {tags === null && <p className="mt-6 text-slate-600">{t("tags.loading")}</p>}
       {tags !== null && tags.length === 0 && (
-        <p>
+        <p className="mt-6 text-slate-600">
           {t("tags.empty")}{" "}
-          <Link href="/caregiver/contacts">{t("tags.emptyLink")}</Link>
+          <Link href="/caregiver/contacts" className="font-medium text-brand-600 hover:underline">
+            {t("tags.emptyLink")}
+          </Link>
         </p>
       )}
       {tags !== null && tags.length > 0 && (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th align="left">{t("tags.colCode")}</th>
-              <th align="left">{t("tags.colPerson")}</th>
-              <th align="left">{t("tags.colLabel")}</th>
-              <th align="left">{t("tags.colContact")}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {tags.map((tag) => (
-              <tr key={tag.code} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: "10px 0", fontFamily: "monospace" }}>{tag.code}</td>
-                <td>{tag.personName ?? "—"}</td>
-                <td style={{ color: "#555" }}>{tag.label ?? "—"}</td>
-                <td style={{ color: "#555" }}>{contactSummary(tag.contact)}</td>
-                <td style={{ textAlign: "right" }}>
-                  <Link href={`/caregiver/tags/${encodeURIComponent(tag.code)}`} style={{ marginRight: 12 }}>
-                    {t("tags.view")}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => revoke(tag.code)}
-                    disabled={revoking === tag.code}
-                    style={{ color: "#b00020", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" }}
-                  >
-                    {t("tags.revoke")}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="mt-6 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-sm">
+          {tags.map((tag) => (
+            <li key={tag.code} className="flex items-center justify-between gap-4 px-5 py-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-slate-500">{tag.code}</span>
+                </div>
+                <p className="mt-0.5 font-medium text-navy-900">
+                  {tag.personName ?? tag.label ?? tag.code}
+                </p>
+                {tag.personName && tag.label && (
+                  <p className="text-sm text-slate-600">{tag.label}</p>
+                )}
+                <p className="mt-0.5 text-xs text-slate-500">{contactSummary(tag.contact)}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Link
+                  href={`/caregiver/tags/${encodeURIComponent(tag.code)}`}
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+                >
+                  {t("tags.view")}
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => revoke(tag.code)}
+                  disabled={revoking === tag.code}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  {t("tags.revoke")}
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );

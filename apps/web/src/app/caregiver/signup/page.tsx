@@ -7,6 +7,12 @@ import { useT } from "@/lib/i18n/use-t";
 import { safeNext } from "@/lib/safe-next";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { getPublicConfig } from "@/lib/config";
+import { LogoMark } from "@/components/Logo";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 // Loose E.164-ish: leading `+` optional, 7–20 chars, digits and separators.
 // Real E.164 validation happens server-side + at the SMS provider layer.
@@ -55,77 +61,87 @@ function SignupForm() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "64px auto", fontFamily: "system-ui" }}>
-      <h1>{t("signup.title")}</h1>
-      <form onSubmit={onSubmit}>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("signup.name")}
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            maxLength={120}
-            style={{ display: "block", width: "100%", padding: 8 }}
-          />
-        </label>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("signup.email")}
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ display: "block", width: "100%", padding: 8 }}
-          />
-        </label>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("signup.phone")}{" "}
-          <span style={{ color: "#999", fontSize: 12 }}>{t("signup.phoneHint")}</span>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            inputMode="tel"
-            autoComplete="tel"
-            style={{ display: "block", width: "100%", padding: 8 }}
-          />
-        </label>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("signup.password")}
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            style={{ display: "block", width: "100%", padding: 8 }}
-          />
-        </label>
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-        <button type="submit" disabled={loading}>
-          {loading ? t("signup.submitting") : t("signup.submit")}
-        </button>
-        <p style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
-          {t("signup.verificationNote")}
-        </p>
-      </form>
-      {googleEnabled && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "16px 0", color: "#999", fontSize: 12 }}>
-            <hr style={{ flex: 1 }} />
-            {t("oauth.or")}
-            <hr style={{ flex: 1 }} />
-          </div>
-          <GoogleSignInButton
-            callbackURL={next ?? "/caregiver/people"}
-            label={t("oauth.google")}
-          />
-        </>
-      )}
-      <p style={{ marginTop: 16, fontSize: 13, color: "#666" }}>
+    <main className="mx-auto max-w-md px-4 py-12 sm:py-16">
+      <div className="text-center">
+        <LogoMark className="mx-auto h-12 w-12" />
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-navy-900">{t("signup.title")}</h1>
+      </div>
+      <Card className="mt-6">
+        <CardContent className="flex flex-col gap-4 pt-6">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="signup-name">{t("signup.name")}</Label>
+              <Input
+                id="signup-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                maxLength={120}
+              />
+            </div>
+            <div>
+              <Label htmlFor="signup-email">{t("signup.email")}</Label>
+              <Input
+                id="signup-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="signup-phone">
+                {t("signup.phone")}{" "}
+                <span className="font-normal text-slate-400">{t("signup.phoneHint")}</span>
+              </Label>
+              <Input
+                id="signup-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                inputMode="tel"
+                autoComplete="tel"
+              />
+            </div>
+            <div>
+              <Label htmlFor="signup-password">{t("signup.password")}</Label>
+              <Input
+                id="signup-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+            {error && <Alert variant="destructive">{error}</Alert>}
+            <Button type="submit" variant="accent" size="lg" disabled={loading} className="w-full">
+              {loading ? t("signup.submitting") : t("signup.submit")}
+            </Button>
+            <p className="text-xs leading-relaxed text-slate-500">{t("signup.verificationNote")}</p>
+          </form>
+          {googleEnabled && (
+            <>
+              <div className="flex items-center gap-3">
+                <hr className="flex-1 border-slate-200" />
+                <span className="text-xs text-slate-500">{t("oauth.or")}</span>
+                <hr className="flex-1 border-slate-200" />
+              </div>
+              <GoogleSignInButton
+                callbackURL={next ?? "/caregiver/people"}
+                label={t("oauth.google")}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+      <p className="mt-4 text-center text-sm text-slate-600">
         {t("signup.haveAccount")}{" "}
-        <Link href={next ? `/caregiver/login?next=${encodeURIComponent(next)}` : "/caregiver/login"}>
+        <Link
+          href={next ? `/caregiver/login?next=${encodeURIComponent(next)}` : "/caregiver/login"}
+          className="font-medium text-brand-600 hover:text-brand-700 hover:underline"
+        >
           {t("signup.signIn")}
         </Link>
       </p>

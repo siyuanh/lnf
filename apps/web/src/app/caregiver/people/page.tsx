@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useT } from "@/lib/i18n/use-t";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 interface Person {
   id: string;
@@ -56,68 +61,65 @@ export default function PeoplePage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>{t("people.title")}</h1>
-        <Link href="/caregiver/contacts" style={{ fontSize: 13 }}>
-          {t("contacts.linkFromPeople")}
-        </Link>
-      </div>
+    <main className="mx-auto max-w-2xl px-4 py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-navy-900">{t("people.title")}</h1>
 
-      <section style={{ marginBottom: 32, padding: 16, border: "1px solid #ddd", borderRadius: 6 }}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>{t("people.addTitle")}</h2>
-        <form onSubmit={onSubmit}>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            {t("people.nickname")}
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              required
-              maxLength={80}
-              style={{ display: "block", width: "100%", padding: 8 }}
-            />
-          </label>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            {t("people.publicNote")} <span style={{ color: "#999", fontSize: 12 }}>{t("people.publicNoteHint")}</span>
-            <textarea
-              value={publicNote}
-              onChange={(e) => setPublicNote(e.target.value)}
-              maxLength={200}
-              rows={2}
-              style={{ display: "block", width: "100%", padding: 8 }}
-            />
-          </label>
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
-          <button type="submit" disabled={submitting || !nickname.trim()}>
-            {submitting ? t("people.adding") : t("people.add")}
-          </button>
-        </form>
-      </section>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t("people.addTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="person-nickname">{t("people.nickname")}</Label>
+              <Input
+                id="person-nickname"
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                required
+                maxLength={80}
+              />
+            </div>
+            <div>
+              <Label htmlFor="person-note">
+                {t("people.publicNote")}{" "}
+                <span className="font-normal text-slate-400">{t("people.publicNoteHint")}</span>
+              </Label>
+              <Textarea
+                id="person-note"
+                value={publicNote}
+                onChange={(e) => setPublicNote(e.target.value)}
+                maxLength={200}
+                rows={2}
+              />
+            </div>
+            {error && <Alert variant="destructive">{error}</Alert>}
+            <div>
+              <Button type="submit" variant="accent" disabled={submitting || !nickname.trim()}>
+                {submitting ? t("people.adding") : t("people.add")}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-      {people === null && <p>{t("people.loading")}</p>}
-      {people !== null && people.length === 0 && <p>{t("people.empty")}</p>}
+      {people === null && <p className="mt-6 text-slate-600">{t("people.loading")}</p>}
+      {people !== null && people.length === 0 && <p className="mt-6 text-slate-600">{t("people.empty")}</p>}
       {people !== null && people.length > 0 && (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th align="left">{t("people.colNickname")}</th>
-              <th align="left">{t("people.colNote")}</th>
-              <th align="left">{t("people.colCreated")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {people.map((p) => (
-              <tr key={p.id} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: "8px 0" }}>{p.nickname}</td>
-                <td style={{ color: "#555" }}>{p.publicNote ?? "—"}</td>
-                <td style={{ fontSize: 12, color: "#666" }}>
-                  {new Date(p.createdAt).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="mt-6 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-sm">
+          {people.map((p) => (
+            <li key={p.id} className="flex items-start justify-between gap-4 px-5 py-4">
+              <div className="min-w-0">
+                <p className="font-medium text-navy-900">{p.nickname}</p>
+                {p.publicNote && <p className="mt-0.5 text-sm text-slate-600">{p.publicNote}</p>}
+              </div>
+              <span className="shrink-0 text-xs text-slate-500">
+                {new Date(p.createdAt).toLocaleDateString()}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );

@@ -1,7 +1,12 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useT } from "@/lib/i18n/use-t";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 // §5.6 LGPD self-service: export everything the service holds on you, or
 // permanently delete the account. Export is a plain navigation (the API
@@ -33,41 +38,49 @@ export default function AccountPage() {
   }
 
   return (
-    <main style={{ maxWidth: 560, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>{t("account.title")}</h1>
-        <Link href="/caregiver/tags" style={{ fontSize: 13 }}>
-          {t("finds.linkToTags")}
-        </Link>
-      </div>
-      <p style={{ color: "#555", fontSize: 14 }}>{t("account.subtitle")}</p>
+    <main className="mx-auto max-w-xl px-4 py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-navy-900">{t("account.title")}</h1>
+      <p className="mt-1 text-sm text-slate-600">{t("account.subtitle")}</p>
 
-      <section style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 17 }}>{t("account.exportTitle")}</h2>
-        <p style={{ color: "#555", fontSize: 14 }}>{t("account.exportBody")}</p>
-        <a href="/api/caregiver/export">
-          <button type="button">{t("account.exportButton")}</button>
-        </a>
-      </section>
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t("account.exportTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-sm leading-relaxed text-slate-600">{t("account.exportBody")}</p>
+          <a href="/api/caregiver/export" className={cn(buttonVariants({ variant: "outline" }), "mt-4 inline-flex")}>
+            {t("account.exportButton")}
+          </a>
+        </CardContent>
+      </Card>
 
-      <section style={{ marginTop: 36, borderTop: "1px solid #eee", paddingTop: 20 }}>
-        <h2 style={{ fontSize: 17, color: "#a00" }}>{t("account.deleteTitle")}</h2>
-        <p style={{ color: "#555", fontSize: 14 }}>{t("account.deleteBody")}</p>
-        <label style={{ display: "block", fontSize: 13, marginBottom: 8 }}>
-          {t("account.password")}
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ display: "block", marginTop: 4, padding: 6, width: 260 }}
-            autoComplete="current-password"
-          />
-        </label>
-        <button type="button" disabled={busy || password.length === 0} onClick={onDelete}>
-          {t("account.deleteSubmit")}
-        </button>
-        {error && <p style={{ color: "#b00" }}>{t("account.deleteFailed")}</p>}
-      </section>
+      <Card className="mt-4 border-red-200">
+        <CardHeader>
+          <CardTitle className="text-base text-red-700">{t("account.deleteTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-sm leading-relaxed text-slate-600">{t("account.deleteBody")}</p>
+          <div className="mt-4 max-w-xs">
+            <Label htmlFor="delete-password">{t("account.password")}</Label>
+            <Input
+              id="delete-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+          <Button
+            variant="destructive"
+            disabled={busy || password.length === 0}
+            onClick={onDelete}
+            className="mt-4"
+          >
+            {t("account.deleteSubmit")}
+          </Button>
+          {error && <Alert variant="destructive" className="mt-3">{t("account.deleteFailed")}</Alert>}
+        </CardContent>
+      </Card>
     </main>
   );
 }

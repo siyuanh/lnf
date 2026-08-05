@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useT } from "@/lib/i18n/use-t";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 type ContactKind = "phone" | "email" | "address";
 interface Contact {
@@ -108,150 +113,143 @@ export default function ContactsPage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1>{t("contacts.title")}</h1>
-        <Link href="/caregiver/tags" style={{ fontSize: 13 }}>
-          {t("tags.title")}
-        </Link>
-      </div>
-      <p style={{ color: "#555", fontSize: 14 }}>{t("contacts.subtitle")}</p>
+    <main className="mx-auto max-w-2xl px-4 py-8">
+      <h1 className="text-2xl font-bold tracking-tight text-navy-900">{t("contacts.title")}</h1>
+      <p className="mt-1 text-sm text-slate-600">{t("contacts.subtitle")}</p>
 
-      <section style={{ marginBottom: 24, padding: 16, border: "1px solid #ddd", borderRadius: 6 }}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>{t("contacts.addTitle")}</h2>
-        <form onSubmit={onAdd}>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            {t("contacts.kind")}
-            <select
-              value={kind}
-              onChange={(e) => setKind(e.target.value as ContactKind)}
-              style={{ display: "block", width: "100%", padding: 8 }}
-            >
-              <option value="phone">{t("contacts.kindPhone")}</option>
-              <option value="email">{t("contacts.kindEmail")}</option>
-              <option value="address">{t("contacts.kindAddress")}</option>
-            </select>
-          </label>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            {t("contacts.label")}{" "}
-            <span style={{ color: "#999", fontSize: 12 }}>{t("contacts.labelHint")}</span>
-            <input
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              maxLength={80}
-              style={{ display: "block", width: "100%", padding: 8 }}
-            />
-          </label>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            {t("contacts.value")}
-            {kind === "address" ? (
-              <textarea
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                required
-                maxLength={200}
-                rows={3}
-                style={{ display: "block", width: "100%", padding: 8 }}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t("contacts.addTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onAdd} className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="contact-kind">{t("contacts.kind")}</Label>
+              <select
+                id="contact-kind"
+                value={kind}
+                onChange={(e) => setKind(e.target.value as ContactKind)}
+                className="flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1"
+              >
+                <option value="phone">{t("contacts.kindPhone")}</option>
+                <option value="email">{t("contacts.kindEmail")}</option>
+                <option value="address">{t("contacts.kindAddress")}</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="contact-label">
+                {t("contacts.label")}{" "}
+                <span className="font-normal text-slate-400">{t("contacts.labelHint")}</span>
+              </Label>
+              <Input
+                id="contact-label"
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                maxLength={80}
               />
-            ) : (
-              <input
-                type={kind === "email" ? "email" : "tel"}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                required
-                maxLength={200}
-                style={{ display: "block", width: "100%", padding: 8 }}
-              />
-            )}
-          </label>
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
-          <button type="submit" disabled={submitting || !value.trim()}>
-            {submitting ? t("contacts.adding") : t("contacts.add")}
-          </button>
-        </form>
-      </section>
+            </div>
+            <div>
+              <Label htmlFor="contact-value">{t("contacts.value")}</Label>
+              {kind === "address" ? (
+                <Textarea
+                  id="contact-value"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  required
+                  maxLength={200}
+                  rows={3}
+                />
+              ) : (
+                <Input
+                  id="contact-value"
+                  type={kind === "email" ? "email" : "tel"}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  required
+                  maxLength={200}
+                />
+              )}
+            </div>
+            {error && <Alert variant="destructive">{error}</Alert>}
+            <div>
+              <Button type="submit" variant="accent" disabled={submitting || !value.trim()}>
+                {submitting ? t("contacts.adding") : t("contacts.add")}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
-      {rowError && <p style={{ color: "crimson" }}>{rowError}</p>}
+      {rowError && <Alert variant="destructive" className="mt-4">{rowError}</Alert>}
 
-      {contacts === null && <p>{t("contacts.loading")}</p>}
-      {contacts !== null && contacts.length === 0 && <p>{t("contacts.empty")}</p>}
+      {contacts === null && <p className="mt-6 text-slate-600">{t("contacts.loading")}</p>}
+      {contacts !== null && contacts.length === 0 && <p className="mt-6 text-slate-600">{t("contacts.empty")}</p>}
       {contacts !== null && contacts.length > 0 && (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th align="left">{t("contacts.colType")}</th>
-              <th align="left">{t("contacts.colLabel")}</th>
-              <th align="left">{t("contacts.colValue")}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.map((c) => {
-              const isEditing = editing?.id === c.id;
-              return (
-                <tr key={c.id} style={{ borderTop: "1px solid #eee", verticalAlign: "top" }}>
-                  <td style={{ padding: "10px 0" }}>{t(`contacts.kind${cap(c.kind)}` as never)}</td>
-                  <td>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editing!.label}
-                        onChange={(e) => setEditing({ ...editing!, label: e.target.value })}
-                        maxLength={80}
-                        style={{ width: "100%", padding: 6 }}
-                      />
-                    ) : (
-                      <span style={{ color: "#555" }}>{c.label ?? "—"}</span>
-                    )}
-                  </td>
-                  <td>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editing!.value}
-                        onChange={(e) => setEditing({ ...editing!, value: e.target.value })}
-                        maxLength={200}
-                        style={{ width: "100%", padding: 6 }}
-                      />
-                    ) : (
-                      c.value
-                    )}
-                  </td>
-                  <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                    {isEditing ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={saveEdit}
-                          disabled={rowBusy === c.id || !editing!.value.trim()}
-                        >
-                          {rowBusy === c.id ? t("contacts.saving") : t("contacts.save")}
-                        </button>{" "}
-                        <button type="button" onClick={() => setEditing(null)}>
-                          {t("contacts.cancel")}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button type="button" onClick={() => startEdit(c)}>
-                          {t("contacts.edit")}
-                        </button>{" "}
-                        <button
-                          type="button"
-                          onClick={() => del(c.id)}
-                          disabled={rowBusy === c.id}
-                        >
-                          {t("contacts.delete")}
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <ul className="mt-6 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-sm">
+          {contacts.map((c) => {
+            const isEditing = editing?.id === c.id;
+            return (
+              <li key={c.id} className="px-5 py-4">
+                {isEditing ? (
+                  <div className="flex flex-col gap-3">
+                    <Input
+                      type="text"
+                      value={editing!.label}
+                      onChange={(e) => setEditing({ ...editing!, label: e.target.value })}
+                      maxLength={80}
+                      aria-label={t("contacts.label")}
+                    />
+                    <Input
+                      type="text"
+                      value={editing!.value}
+                      onChange={(e) => setEditing({ ...editing!, value: e.target.value })}
+                      maxLength={200}
+                      aria-label={t("contacts.value")}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="accent"
+                        size="sm"
+                        onClick={saveEdit}
+                        disabled={rowBusy === c.id || !editing!.value.trim()}
+                      >
+                        {rowBusy === c.id ? t("contacts.saving") : t("contacts.save")}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
+                        {t("contacts.cancel")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        {t(`contacts.kind${cap(c.kind)}` as never)}
+                        {c.label && <span className="ml-2 normal-case text-slate-400">{c.label}</span>}
+                      </p>
+                      <p className="mt-0.5 break-words text-sm font-medium text-navy-900">{c.value}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => startEdit(c)}>
+                        {t("contacts.edit")}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => del(c.id)}
+                        disabled={rowBusy === c.id}
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        {t("contacts.delete")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </main>
   );

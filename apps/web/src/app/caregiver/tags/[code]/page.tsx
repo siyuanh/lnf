@@ -3,8 +3,11 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useT } from "@/lib/i18n/use-t";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type ContactKind = "phone" | "email" | "address";
+type TagState = "inactive" | "active" | "registered" | "deprecated";
 interface TagContact {
   id: string;
   kind: ContactKind;
@@ -22,6 +25,13 @@ interface TagDetail {
   registeredAt: string | null;
   contact: TagContact | null;
 }
+
+const STATE_VARIANT = {
+  inactive: "muted",
+  active: "info",
+  registered: "success",
+  deprecated: "danger",
+} as const;
 
 export default function TagDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
@@ -48,92 +58,114 @@ export default function TagDetailPage({ params }: { params: Promise<{ code: stri
 
   if (notFound) {
     return (
-      <main style={{ maxWidth: 560, margin: "48px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-        <p>{t("tagDetail.notFound")}</p>
-        <Link href="/caregiver/tags">{t("tagDetail.back")}</Link>
+      <main className="mx-auto max-w-xl px-4 py-12">
+        <p className="text-slate-600">{t("tagDetail.notFound")}</p>
+        <Link href="/caregiver/tags" className="mt-2 inline-block font-medium text-brand-600 hover:underline">
+          {t("tagDetail.back")}
+        </Link>
       </main>
     );
   }
 
   if (!tag) {
     return (
-      <main style={{ maxWidth: 560, margin: "48px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-        <p>{t("tagDetail.loading")}</p>
+      <main className="mx-auto max-w-xl px-4 py-12">
+        <p className="text-slate-600">{t("tagDetail.loading")}</p>
       </main>
     );
   }
 
   const finderUrl = `${window.location.origin}/f/${tag.code}`;
+  const stateVariant = STATE_VARIANT[tag.state as TagState] ?? "muted";
 
   return (
-    <main style={{ maxWidth: 560, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <p style={{ marginBottom: 16 }}>
-        <Link href="/caregiver/tags">{t("tagDetail.back")}</Link>
+    <main className="mx-auto max-w-xl px-4 py-8">
+      <p>
+        <Link href="/caregiver/tags" className="text-sm font-medium text-brand-600 hover:underline">
+          ← {t("tagDetail.back")}
+        </Link>
       </p>
 
-      <h1 style={{ marginBottom: 4 }}>{tag.label || t("tagDetail.untitled")}</h1>
-      <p style={{ fontFamily: "monospace", color: "#888", marginTop: 0 }}>{tag.code}</p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-navy-900">{tag.label || t("tagDetail.untitled")}</h1>
+        <Badge variant={stateVariant}>{t(`tagState.${tag.state}` as never)}</Badge>
+      </div>
+      <p className="mt-1 font-mono text-xs text-slate-500">{tag.code}</p>
 
-      <section style={{ textAlign: "center", margin: "24px 0" }}>
-        {qrSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={qrSrc}
-            alt={t("tagDetail.qrAlt")}
-            width={220}
-            height={220}
-            style={{ border: "1px solid #eee", borderRadius: 8 }}
+      <Card className="mt-6">
+        <CardContent className="flex flex-col items-center py-6">
+          {qrSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={qrSrc}
+              alt={t("tagDetail.qrAlt")}
+              width={220}
+              height={220}
+              className="rounded-lg border border-slate-200"
+            />
+          ) : (
+            <div className="h-[220px] w-[220px] rounded-lg bg-slate-100" />
+          )}
+          <p className="mt-3 break-all text-center font-mono text-xs text-slate-400">{finderUrl}</p>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">{t("tagDetail.tagSection")}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Row k={t("tagDetail.state")} v={t(`tagState.${tag.state}` as never)} />
+          <Row
+            k={t("tagDetail.registeredAt")}
+            v={tag.registeredAt ? new Date(tag.registeredAt).toLocaleString() : "—"}
           />
-        ) : (
-          <div style={{ height: 220 }} />
-        )}
-        <p style={{ fontSize: 12, color: "#999", fontFamily: "monospace", wordBreak: "break-all" }}>
-          {finderUrl}
-        </p>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 16 }}>{t("tagDetail.tagSection")}</h2>
-        <Row k={t("tagDetail.state")} v={t(`tagState.${tag.state}` as never)} />
-        <Row
-          k={t("tagDetail.registeredAt")}
-          v={tag.registeredAt ? new Date(tag.registeredAt).toLocaleString() : "—"}
-        />
-      </section>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">{t("tagDetail.personSection")}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Row k={t("tagDetail.personName")} v={tag.personName ?? "—"} />
+          <div className="flex gap-3 border-b border-slate-100 py-2 last:border-0">
+            <span className="w-36 shrink-0 text-sm text-slate-500">{t("tagDetail.personDetails")}</span>
+            <span className="whitespace-pre-wrap text-sm text-slate-900">{tag.personDetails ?? "—"}</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      <section style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 16 }}>{t("tagDetail.personSection")}</h2>
-        <Row k={t("tagDetail.personName")} v={tag.personName ?? "—"} />
-        <div style={{ display: "flex", gap: 12, padding: "6px 0" }}>
-          <span style={{ minWidth: 140, color: "#888" }}>{t("tagDetail.personDetails")}</span>
-          <span style={{ whiteSpace: "pre-wrap" }}>{tag.personDetails ?? "—"}</span>
-        </div>
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: 16 }}>{t("tagDetail.contactSection")}</h2>
-        {tag.contact ? (
-          <>
-            <Row k={t("tagDetail.contactType")} v={t(`contacts.kind${cap(tag.contact.kind)}` as never)} />
-            <Row k={t("tagDetail.contactLabel")} v={tag.contact.label ?? "—"} />
-            <Row k={t("tagDetail.contactValue")} v={tag.contact.value} />
-          </>
-        ) : (
-          <p style={{ color: "#888" }}>{t("tagDetail.noContact")}</p>
-        )}
-        <p style={{ marginTop: 12, fontSize: 13 }}>
-          <Link href="/caregiver/contacts">{t("tagDetail.manageContacts")}</Link>
-        </p>
-      </section>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">{t("tagDetail.contactSection")}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {tag.contact ? (
+            <>
+              <Row k={t("tagDetail.contactType")} v={t(`contacts.kind${cap(tag.contact.kind)}` as never)} />
+              <Row k={t("tagDetail.contactLabel")} v={tag.contact.label ?? "—"} />
+              <Row k={t("tagDetail.contactValue")} v={tag.contact.value} />
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">{t("tagDetail.noContact")}</p>
+          )}
+          <p className="mt-3">
+            <Link href="/caregiver/contacts" className="text-sm font-medium text-brand-600 hover:underline">
+              {t("tagDetail.manageContacts")}
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </main>
   );
 }
 
 function Row({ k, v }: { k: string; v: string }) {
   return (
-    <div style={{ display: "flex", gap: 12, padding: "6px 0", borderBottom: "1px solid #f2f2f2" }}>
-      <span style={{ minWidth: 140, color: "#888" }}>{k}</span>
-      <span>{v}</span>
+    <div className="flex gap-3 border-b border-slate-100 py-2 last:border-0">
+      <span className="w-36 shrink-0 text-sm text-slate-500">{k}</span>
+      <span className="text-sm text-slate-900">{v}</span>
     </div>
   );
 }
