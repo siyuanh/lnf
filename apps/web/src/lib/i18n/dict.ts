@@ -8,13 +8,17 @@ export const LOCALE_COOKIE = "lnf_locale";
 
 export const dict = {
   en: {
-    "common.appName": "LNF",
+    "common.appName": "Encuéntrame",
     "common.languageEnglish": "English",
     "common.languageSpanish": "Español",
     "common.languagePortuguese": "Português",
     "common.switchTo": "Switch language",
 
-    "home.title": "LNF",
+    "home.title": "Encuéntrame",
+    "home.heroTitle": "Scan. Find. Reunite.",
+    "home.heroSub": "A small QR tag that helps anyone who finds your loved one bring them home — quickly and safely.",
+    "home.ctaCaregiver": "I'm a caregiver",
+    "home.ctaPartner": "I'm a partner organization",
 
     "login.title": "Partner login",
     "login.email": "Email",
@@ -265,13 +269,17 @@ export const dict = {
     "tags.linkToAccount": "Account",
   },
   es: {
-    "common.appName": "LNF",
+    "common.appName": "Encuéntrame",
     "common.languageEnglish": "English",
     "common.languageSpanish": "Español",
     "common.languagePortuguese": "Portugués",
     "common.switchTo": "Cambiar idioma",
 
-    "home.title": "LNF",
+    "home.title": "Encuéntrame",
+    "home.heroTitle": "Escanea. Encuentra. Reúne.",
+    "home.heroSub": "Una pequeña etiqueta QR que ayuda a que quien encuentre a tu ser querido lo regrese a casa — rápido y seguro.",
+    "home.ctaCaregiver": "Soy cuidador/a",
+    "home.ctaPartner": "Soy una organización aliada",
 
     "login.title": "Acceso de partner",
     "login.email": "Correo electrónico",
@@ -522,13 +530,17 @@ export const dict = {
     "tags.linkToAccount": "Cuenta",
   },
   "pt-BR": {
-    "common.appName": "LNF",
+    "common.appName": "Encuéntrame",
     "common.languageEnglish": "English",
     "common.languageSpanish": "Español",
     "common.languagePortuguese": "Português",
     "common.switchTo": "Mudar idioma",
 
-    "home.title": "LNF",
+    "home.title": "Encuéntrame",
+    "home.heroTitle": "Escaneie. Encontre. Reúna.",
+    "home.heroSub": "Uma pequena etiqueta QR que ajuda quem encontrar seu ente querido a trazê-lo para casa — rápido e com segurança.",
+    "home.ctaCaregiver": "Sou cuidador(a)",
+    "home.ctaPartner": "Sou uma organização parceira",
 
     "login.title": "Acesso do partner",
     "login.email": "E-mail",

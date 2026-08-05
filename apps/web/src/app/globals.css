@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Brand palette sampled from the Encuéntrame logo: navy wordmark + signal-blue accent. */
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #d9e8fe;
+  --color-brand-200: #bcd7fd;
+  --color-brand-400: #4b92f5;
+  --color-brand-500: #2e7cf1;
+  --color-brand-600: #1f64d8;
+  --color-brand-700: #1c51b4;
+
+  --color-navy-700: #1b3670;
+  --color-navy-800: #12295c;
+  --color-navy-900: #0b1f4b;
+  --color-navy-950: #071430;
+
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+body {
+  @apply bg-white text-slate-900 antialiased;
+}
