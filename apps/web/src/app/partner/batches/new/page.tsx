@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import JSZip from "jszip";
 import { useT } from "@/lib/i18n/use-t";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert } from "@/components/ui/alert";
 
 interface MintResponse {
   batchId: string;
@@ -62,14 +66,14 @@ function QrPreview({ code }: { code: string }) {
     QRCode.toDataURL(urlForCode(code), { width: 128, margin: 1, errorCorrectionLevel: "M" }).then(setSrc);
   }
   return (
-    <figure style={{ margin: 0, textAlign: "center" }}>
+    <figure className="m-0 text-center">
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={code} width={128} height={128} style={{ display: "block" }} />
+        <img src={src} alt={code} width={128} height={128} className="mx-auto block rounded-lg border border-slate-200" />
       ) : (
-        <div style={{ width: 128, height: 128, background: "#f0f0f0" }} />
+        <div className="mx-auto h-32 w-32 rounded-lg bg-slate-100" />
       )}
-      <figcaption style={{ fontSize: 11, fontFamily: "monospace", marginTop: 4 }}>{code}</figcaption>
+      <figcaption className="mt-1 font-mono text-xs text-slate-600">{code}</figcaption>
     </figure>
   );
 }
@@ -118,81 +122,73 @@ export default function NewBatchPage() {
     const previewCodes = result.codes.slice(0, PREVIEW_CAP);
     const overflow = result.codes.length - previewCodes.length;
     return (
-      <main style={{ maxWidth: 960, margin: "32px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-        <h1>{t("newBatch.created")}</h1>
-        <p>
-          {t("newBatch.batchId")}: <code>{result.batchId}</code> &middot; {t("newBatch.codeCount", { n: result.size })}
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        <h1 className="text-2xl font-bold tracking-tight text-navy-900 sm:text-3xl">{t("newBatch.created")}</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          {t("newBatch.batchId")}: <code className="font-mono text-xs">{result.batchId}</code> &middot;{" "}
+          {t("newBatch.codeCount", { n: result.size })}
         </p>
-        <p style={{ color: "crimson" }}>{t("newBatch.warning")}</p>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 24 }}>
-          <button onClick={onDownloadZip} disabled={zipping}>
+        <Alert variant="warning" className="mt-4">{t("newBatch.warning")}</Alert>
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <Button variant="primary" onClick={onDownloadZip} disabled={zipping}>
             {zipping ? t("newBatch.buildingZip") : t("newBatch.downloadZip")}
-          </button>
-          <a href={result.downloadUrl} download style={{ fontSize: 14 }}>
+          </Button>
+          <a href={result.downloadUrl} download className="text-sm font-medium text-brand-600 hover:text-brand-700 hover:underline">
             {t("newBatch.csvOnly")}
           </a>
         </div>
 
-        <h2 style={{ fontSize: 16 }}>
+        <h2 className="mt-10 text-lg font-semibold text-navy-900">
           {t("newBatch.preview")}{" "}
           {previewCodes.length < result.codes.length
             ? t("newBatch.previewSubset", { shown: previewCodes.length, total: result.size })
             : ""}
         </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-            gap: 16,
-            marginTop: 12,
-          }}
-        >
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {previewCodes.map((c) => (
             <QrPreview key={c} code={c} />
           ))}
         </div>
         {overflow > 0 && (
-          <p style={{ marginTop: 16, color: "#666", fontSize: 13 }}>
-            {t("newBatch.overflow", { n: overflow })}
-          </p>
+          <p className="mt-4 text-sm text-slate-500">{t("newBatch.overflow", { n: overflow })}</p>
         )}
-        <p style={{ marginTop: 24 }}>
-          <button onClick={() => router.push("/partner/batches")}>{t("newBatch.back")}</button>
+        <p className="mt-8">
+          <Button variant="outline" onClick={() => router.push("/partner/batches")}>{t("newBatch.back")}</Button>
         </p>
       </main>
     );
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: "32px auto", fontFamily: "system-ui" }}>
-      <h1>{t("newBatch.title")}</h1>
-      <form onSubmit={onSubmit}>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("newBatch.size")}
-          <input
+    <main className="mx-auto max-w-md px-4 py-8 sm:py-12">
+      <h1 className="text-2xl font-bold tracking-tight text-navy-900">{t("newBatch.title")}</h1>
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-5">
+        <div>
+          <Label htmlFor="batch-size">{t("newBatch.size")}</Label>
+          <Input
+            id="batch-size"
             type="number"
             min={1}
             max={10_000}
             value={size}
             onChange={(e) => setSize(Number(e.target.value))}
             required
-            style={{ display: "block", width: "100%", padding: 8 }}
           />
-        </label>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("newBatch.label")}
-          <input
+        </div>
+        <div>
+          <Label htmlFor="batch-label">{t("newBatch.label")}</Label>
+          <Input
+            id="batch-label"
             type="text"
             maxLength={120}
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            style={{ display: "block", width: "100%", padding: 8 }}
           />
-        </label>
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-        <button type="submit" disabled={busy}>
+        </div>
+        {error && <Alert variant="destructive">{error}</Alert>}
+        <Button type="submit" variant="accent" size="lg" disabled={busy} className="w-full">
           {busy ? t("newBatch.submitting") : t("newBatch.submit")}
-        </button>
+        </Button>
       </form>
     </main>
   );

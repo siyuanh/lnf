@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useT } from "@/lib/i18n/use-t";
+import { PartnerNav } from "./_components/PartnerNav";
 
 interface MeResponse {
   partnerId: string;
@@ -89,38 +90,12 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
 
   if (!ready) return null;
 
-  // Login route renders alone — no logout chrome.
+  // Login route renders alone — no portal chrome.
   if (path === "/partner/login") return <>{children}</>;
 
   return (
     <>
-      <header
-        style={{
-          position: "fixed",
-          top: 12,
-          right: 96,
-          zIndex: 99,
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          fontFamily: "system-ui",
-          fontSize: 13,
-        }}
-      >
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            padding: "4px 10px",
-            border: "1px solid #ccc",
-            borderRadius: 4,
-            background: "white",
-            cursor: "pointer",
-          }}
-        >
-          {t("header.logout")}
-        </button>
-      </header>
+      <PartnerNav onLogout={logout} logoutLabel={t("header.logout")} batchesLabel={t("batches.title")} />
       {children}
     </>
   );

@@ -5,6 +5,12 @@ import { authClient } from "@/lib/auth-client";
 import { useT } from "@/lib/i18n/use-t";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { getPublicConfig } from "@/lib/config";
+import { LogoMark } from "@/components/Logo";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 function LoginForm() {
   const router = useRouter();
@@ -35,49 +41,58 @@ function LoginForm() {
   }
 
   return (
-    <main style={{ maxWidth: 360, margin: "64px auto", fontFamily: "system-ui" }}>
-      <h1>{t("login.title")}</h1>
-      {expired && (
-        <p style={{ background: "#fff3cd", border: "1px solid #ffe69c", padding: 10, borderRadius: 4 }}>
-          {t("login.expired")}
-        </p>
-      )}
-      <form onSubmit={onSubmit}>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("login.email")}
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ display: "block", width: "100%", padding: 8 }}
-          />
-        </label>
-        <label style={{ display: "block", marginBottom: 12 }}>
-          {t("login.password")}
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ display: "block", width: "100%", padding: 8 }}
-          />
-        </label>
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-        <button type="submit" disabled={loading}>
-          {loading ? t("login.submitting") : t("login.submit")}
-        </button>
-      </form>
-      {googleEnabled && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "16px 0", color: "#999", fontSize: 12 }}>
-            <hr style={{ flex: 1 }} />
-            {t("oauth.or")}
-            <hr style={{ flex: 1 }} />
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-16">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <LogoMark className="h-12 w-12" />
           </div>
-          <GoogleSignInButton callbackURL="/partner/batches" label={t("oauth.google")} />
-        </>
-      )}
+          <CardTitle className="text-2xl font-bold text-navy-900">{t("login.title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {expired && (
+            <Alert variant="warning">
+              {t("login.expired")}
+            </Alert>
+          )}
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("login.email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("login.password")}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? t("login.submitting") : t("login.submit")}
+            </Button>
+          </form>
+          {googleEnabled && (
+            <>
+              <div className="flex items-center gap-3">
+                <hr className="flex-1 border-slate-200" />
+                <span className="text-xs text-slate-500">{t("oauth.or")}</span>
+                <hr className="flex-1 border-slate-200" />
+              </div>
+              <GoogleSignInButton callbackURL="/partner/batches" label={t("oauth.google")} />
+            </>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 }
