@@ -62,7 +62,14 @@ describe("caregiver LGPD export/delete (§5.6)", () => {
     await app.request("/api/caregiver/people", {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify({ nickname: `Kid of ${email}`, publicNote: "note" }),
+      // Link the emergency contact so the cascade/delete path crosses the
+      // protected_person → caregiver_contact FK.
+      body: JSON.stringify({
+        nickname: `Kid of ${email}`,
+        publicNote: "note",
+        fullName: "Full Name",
+        primaryContactId: contact.id,
+      }),
     });
 
     const [p] = await db.insert(partner).values({ name: "Acme", billingEmail: "ops@acme.test" }).returning();

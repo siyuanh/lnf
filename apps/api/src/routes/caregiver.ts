@@ -151,8 +151,10 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         await tx.delete(spendLedger).where(eq(spendLedger.caregiverId, caregiverId));
         await tx.delete(device).where(eq(device.caregiverId, caregiverId));
         await tx.delete(tag).where(eq(tag.caregiverId, caregiverId));
-        await tx.delete(caregiverContact).where(eq(caregiverContact.caregiverId, caregiverId));
+        // Person before contacts: protected_person.primary/secondary_contact_id
+        // FK to caregiver_contact.
         await tx.delete(protectedPerson).where(eq(protectedPerson.caregiverId, caregiverId));
+        await tx.delete(caregiverContact).where(eq(caregiverContact.caregiverId, caregiverId));
         // Deleting the Better-Auth user cascades to caregiver, account and
         // session rows — the request's own session dies with it.
         await tx.delete(user).where(eq(user.id, userId));

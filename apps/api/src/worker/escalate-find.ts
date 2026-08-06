@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { Task } from "graphile-worker";
 import type { Env } from "../env.js";
 import type { Db, DbExecutor } from "../db/client.js";
 import { makeDb } from "../db/client.js";
-import { auditEvent, find, notificationAttempt, tag } from "../db/schema.js";
+import { auditEvent, find, notificationAttempt, protectedPerson, tag } from "../db/schema.js";
 import { enqueueJob } from "../notify/enqueue.js";
 import { loadChannels } from "../notify/channels.js";
 import { recordSpend, spendToday } from "../notify/spend.js";
@@ -50,8 +50,18 @@ export function makeEscalateFindTask(deps: EscalationDeps): Task {
     if (f.length === 0 || f[0]!.status !== "reported") return;
 
     const t = await deps.db
-      .select({ caregiverId: tag.caregiverId, personName: tag.personName, label: tag.label })
+      .select({
+        caregiverId: tag.caregiverId,
+        personName: tag.personName,
+        label: tag.label,
+        personFullName: protectedPerson.fullName,
+        personNickname: protectedPerson.nickname,
+      })
       .from(tag)
+      .leftJoin(
+        protectedPerson,
+        and(eq(protectedPerson.id, tag.protectedPersonId), isNull(protectedPerson.deletedAt)),
+      )
       .where(eq(tag.id, f[0]!.tagId))
       .limit(1);
     const caregiverId = t[0]?.caregiverId;
@@ -119,7 +129,8 @@ export function makeEscalateFindTask(deps: EscalationDeps): Task {
       return;
     }
 
-    const personLabel = t[0]!.personName ?? t[0]!.label ?? "tu familiar";
+    const personLabel =
+      t[0]!.personName ?? t[0]!.personFullName ?? t[0]!.personNickname ?? t[0]!.label ?? "tu familiar";
     const locationText = f[0]!.addressText ?? "ubicación GPS compartida";
 
     // Reserve the attempt row first so its id can be signed into the ack link.

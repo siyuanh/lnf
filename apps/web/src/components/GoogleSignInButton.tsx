@@ -15,19 +15,7 @@ export function GoogleSignInButton({ callbackURL, label }: Props) {
     <button
       type="button"
       onClick={() => authClient.signIn.social({ provider: "google", callbackURL })}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        width: "100%",
-        padding: "8px 12px",
-        border: "1px solid #ccc",
-        borderRadius: 4,
-        background: "white",
-        cursor: "pointer",
-        fontSize: 14,
-      }}
+      className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
         <path
