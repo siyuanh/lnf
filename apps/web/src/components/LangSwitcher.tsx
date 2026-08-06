@@ -8,10 +8,9 @@ interface Props {
 const LABEL: Record<Locale, string> = {
   en: "English",
   es: "Español",
-  "pt-BR": "Português",
 };
 
-// Cycles en → es → pt-BR. Writes the cookie client-side and reloads so server
+// Toggles en → es. Writes the cookie client-side and reloads so server
 // components re-render against the new locale. Reload is the simplest path —
 // otherwise we'd need a full client-side i18n provider for the few pages that
 // aren't server components.

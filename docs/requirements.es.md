@@ -115,7 +115,7 @@ LNF es un servicio que ayuda a devolver a sus cuidadores a personas vulnerables 
 
 ### 5.9 Internacionalización
 
-- Toda la UI dirigida al cuidador DEBE estar disponible en español (es) y portugués (pt-BR) al lanzamiento.
+- Toda la UI dirigida al cuidador DEBE estar disponible en español (es) e inglés (en) al lanzamiento.
 - La página pública del hallador DEBE servirse en el idioma indicado por `Accept-Language`, con español como valor por defecto.
 - Inglés PUEDE estar disponible como tercer idioma, pero no es obligatorio para el lanzamiento.
 

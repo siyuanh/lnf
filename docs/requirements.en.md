@@ -70,7 +70,7 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 
 - Scanning the QR with any modern phone camera MUST open the finder page directly in the browser when the LNF app is not installed (or when the scanner is not the tag's caregiver). No app install, no login, no captcha by default (rate-limit instead). When the LNF app is installed, see §5.3 for routing rules.
 - The finder page MUST display:
-  - A short, friendly framing in the country's primary language (Spanish or Portuguese), explaining that this person may need help getting home.
+  - A short, friendly framing in the country's primary language (Spanish), explaining that this person may need help getting home.
   - An optional caregiver-written note (free text, ≤200 chars).
   - A form to submit the location and an optional message.
 - The location field MUST accept either:
@@ -115,7 +115,7 @@ LNF is a service that helps return lost vulnerable persons (children, people wit
 
 ### 5.9 Internationalization
 
-- All caregiver-facing UI MUST be available in Spanish (es) and Portuguese (pt-BR) at launch.
+- All caregiver-facing UI MUST be available in Spanish (es) and English (en) at launch.
 - The public finder page MUST be served in the language indicated by `Accept-Language`, defaulting to Spanish.
 - English MAY be available as a third option but is not required for launch.
 

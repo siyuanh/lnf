@@ -68,46 +68,14 @@ const dict = {
     "tagDetail.back": "Atrás",
     "common.signOut": "Cerrar sesión",
   },
-  "pt-BR": {
-    "login.title": "Acesso do cuidador",
-    "login.email": "E-mail",
-    "login.password": "Senha",
-    "login.submit": "Entrar",
-    "login.submitting": "Entrando…",
-    "login.failed": "Não foi possível entrar",
-    "login.toSignup": "Sem conta? Crie uma",
-    "signup.title": "Criar conta",
-    "signup.name": "Seu nome",
-    "signup.phone": "Telefone (opcional)",
-    "signup.submit": "Criar conta",
-    "signup.submitting": "Criando…",
-    "signup.failed": "Não foi possível criar a conta",
-    "signup.toLogin": "Já tem conta? Entrar",
-    "tags.title": "Suas etiquetas",
-    "tags.loading": "Carregando…",
-    "tags.empty": "Ainda não há etiquetas registradas.",
-    "tags.error": "Não foi possível carregar as etiquetas.",
-    "tags.person": "Pessoa",
-    "tags.retry": "Tentar novamente",
-    "tagDetail.loading": "Carregando…",
-    "tagDetail.notFound": "Etiqueta não encontrada.",
-    "tagDetail.person": "Pessoa",
-    "tagDetail.noPerson": "Sem dados da pessoa.",
-    "tagDetail.details": "Detalhes",
-    "tagDetail.contact": "Contato para quem a encontrar",
-    "tagDetail.noContact": "Sem contato vinculado.",
-    "tagDetail.state": "Status",
-    "tagDetail.back": "Voltar",
-    "common.signOut": "Sair",
-  },
 } as const;
 
 type Key = keyof (typeof dict)["en"];
 
-// §5.9 launch languages are es + pt-BR; en is the explicit third option.
-// Device primary language drives it, Spanish is the LATAM fallback.
+// §5.9 launch languages: es (LATAM default) + en. Device primary language
+// drives it; anything unsupported (pt, fr, …) falls back to Spanish.
 const code = (getLocales()[0]?.languageCode ?? "es").toLowerCase();
-const locale = code === "pt" ? ("pt-BR" as const) : code === "en" ? ("en" as const) : ("es" as const);
+const locale = code === "en" ? ("en" as const) : ("es" as const);
 
 export function t(key: Key): string {
   return dict[locale][key] ?? dict.en[key] ?? key;

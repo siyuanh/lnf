@@ -40,11 +40,11 @@ describe("notification senders", () => {
     expect(out.subject.length).toBeGreaterThan(0);
   });
 
-  it("renderAlert interpolates pt-BR template with ack link", () => {
-    const out = renderAlert("pt-BR", { personLabel: "Alex", ackUrl: "https://x/ack", locationText: "o parque" });
+  it("renderAlert interpolates en template with ack link", () => {
+    const out = renderAlert("en", { personLabel: "Alex", ackUrl: "https://x/ack", locationText: "the park" });
     expect(out.text).toContain("Alex");
     expect(out.text).toContain("https://x/ack");
-    expect(out.text).toContain("Alguém");
+    expect(out.text).toContain("reported finding");
     expect(out.subject.length).toBeGreaterThan(0);
   });
 });

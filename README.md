@@ -6,7 +6,7 @@ A service that helps return lost vulnerable persons to their caregivers using QR
 
 **Status:** Pre-alpha. Requirements drafted; design and implementation not yet started.
 
-**Region:** Launch is LATAM. UI in Spanish (es) and Portuguese (pt-BR). Privacy designed against Brazil's LGPD as the regional baseline.
+**Region:** Launch is LATAM. UI in Spanish (es) and English (en). Privacy designed against Brazil's LGPD as the regional baseline.
 
 **For whom:** Families and caregivers of children, people with autism or intellectual disability, and adults with dementia.
 
@@ -42,7 +42,7 @@ Un servicio que ayuda a devolver a sus cuidadores a personas vulnerables extravi
 
 **Estado:** Pre-alfa. Requerimientos redactados; diseño e implementación aún por iniciar.
 
-**Región:** Lanzamiento en LATAM. UI en español (es) y portugués (pt-BR). Privacidad diseñada según la LGPD de Brasil como referencia regional.
+**Región:** Lanzamiento en LATAM. UI en español (es) e inglés (en). Privacidad diseñada según la LGPD de Brasil como referencia regional.
 
 **Para quién:** Familias y cuidadores de niños, personas con autismo o discapacidad intelectual y adultos con demencia.
 

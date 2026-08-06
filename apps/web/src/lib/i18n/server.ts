@@ -5,8 +5,8 @@ export function pickLocale(cookieValue: string | undefined, acceptLanguage: stri
   if (cookieValue && (LOCALES as readonly string[]).includes(cookieValue)) return cookieValue as Locale;
   // Accept-Language: pick the highest-q-weighted tag whose primary subtag we
   // support. Browsers send things like "es-CO,es;q=0.9,en;q=0.8" — split on
-  // comma, strip q-values, match on primary subtag so pt, pt-BR and pt-PT all
-  // resolve to our pt-BR table.
+  // comma, strip q-values, match on primary subtag so es-MX and en-US resolve
+  // to our es/en tables; anything else (fr, pt, …) falls to the default.
   if (acceptLanguage) {
     for (const part of acceptLanguage.split(",")) {
       const tag = part.split(";")[0]!.trim().toLowerCase();
