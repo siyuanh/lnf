@@ -14,10 +14,18 @@ export default function FinderForm({
   code,
   personName,
   personDetails,
+  bloodType,
+  medicalConditions,
+  allergies,
+  medications,
 }: {
   code: string;
   personName?: string | null;
   personDetails?: string | null;
+  bloodType?: string | null;
+  medicalConditions?: string | null;
+  allergies?: string | null;
+  medications?: string | null;
 }) {
   const t = useT();
   const [gps, setGps] = useState<Gps | null>(null);
@@ -127,6 +135,20 @@ export default function FinderForm({
         </section>
       )}
 
+      {(medicalConditions || allergies || medications || bloodType) && (
+        <section className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {t("finder.medicalTitle")}
+          </h2>
+          <dl className="mt-2 flex flex-col gap-1.5">
+            {bloodType && <MedRow k={t("finder.bloodType")} v={bloodType} />}
+            {medicalConditions && <MedRow k={t("people.medicalConditions")} v={medicalConditions} />}
+            {allergies && <MedRow k={t("people.allergies")} v={allergies} />}
+            {medications && <MedRow k={t("finder.medications")} v={medications} />}
+          </dl>
+        </section>
+      )}
+
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-5">
         <div>
           <Button type="button" variant="outline" size="lg" onClick={captureGps} disabled={gpsBusy} className="w-full">
@@ -196,5 +218,14 @@ export default function FinderForm({
         {t("finder.tag")}: {code}
       </p>
     </main>
+  );
+}
+
+function MedRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex gap-2 text-sm">
+      <dt className="shrink-0 text-slate-500">{k}:</dt>
+      <dd className="font-medium text-navy-900">{v}</dd>
+    </div>
   );
 }

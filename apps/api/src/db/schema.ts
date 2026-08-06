@@ -114,6 +114,9 @@ export const caregiverContact = pgTable(
     caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
     kind: caregiverContactKind("kind").notNull(),
     label: text("label"),
+    // Who this contact is to the protected person ("mother", "husband") —
+    // optional, shown next to the name in per-person emergency contact picks.
+    relationship: text("relationship"),
     value: text("value").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -129,6 +132,17 @@ export const protectedPerson = pgTable(
     caregiverId: uuid("caregiver_id").notNull().references(() => caregiver.id),
     nickname: text("nickname").notNull(),
     publicNote: text("public_note"),
+    // Structured profile (full name + medical facts) — surfaced on the public
+    // finder page when a tag linked to this person is registered. nickname/
+    // publicNote stay as-is: nickname is the caregiver's private label.
+    fullName: text("full_name"),
+    bloodType: text("blood_type"),
+    medicalConditions: text("medical_conditions"),
+    allergies: text("allergies"),
+    medications: text("medications"),
+    // Emergency contacts are caregiver_contact rows picked per person.
+    primaryContactId: uuid("primary_contact_id").references(() => caregiverContact.id),
+    secondaryContactId: uuid("secondary_contact_id").references(() => caregiverContact.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },

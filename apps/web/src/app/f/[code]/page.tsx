@@ -15,6 +15,10 @@ interface TagLookup {
   state: TagState | "not_found";
   personName: string | null;
   personDetails: string | null;
+  bloodType: string | null;
+  medicalConditions: string | null;
+  allergies: string | null;
+  medications: string | null;
 }
 
 // Public finder route. Per requirements §5.3, the QR encodes a URL of the
@@ -29,16 +33,33 @@ async function lookupTag(code: string): Promise<TagLookup> {
   const res = await fetch(`${target}/api/public/tag/${encodeURIComponent(code)}`, {
     cache: "no-store",
   });
-  if (!res.ok) return { state: "not_found", personName: null, personDetails: null };
+  if (!res.ok)
+    return {
+      state: "not_found",
+      personName: null,
+      personDetails: null,
+      bloodType: null,
+      medicalConditions: null,
+      allergies: null,
+      medications: null,
+    };
   const data = (await res.json()) as {
     state: TagState;
     personName?: string | null;
     personDetails?: string | null;
+    bloodType?: string | null;
+    medicalConditions?: string | null;
+    allergies?: string | null;
+    medications?: string | null;
   };
   return {
     state: data.state,
     personName: data.personName ?? null,
     personDetails: data.personDetails ?? null,
+    bloodType: data.bloodType ?? null,
+    medicalConditions: data.medicalConditions ?? null,
+    allergies: data.allergies ?? null,
+    medications: data.medications ?? null,
   };
 }
 
@@ -93,7 +114,15 @@ export default async function FinderPage({ params }: PageProps) {
   // person's details through so the finder knows who they're helping.
   if (state === "registered" && !signedIn) {
     return (
-      <FinderForm code={code} personName={tag.personName} personDetails={tag.personDetails} />
+      <FinderForm
+        code={code}
+        personName={tag.personName}
+        personDetails={tag.personDetails}
+        bloodType={tag.bloodType}
+        medicalConditions={tag.medicalConditions}
+        allergies={tag.allergies}
+        medications={tag.medications}
+      />
     );
   }
 

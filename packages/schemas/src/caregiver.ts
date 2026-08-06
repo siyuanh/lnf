@@ -12,17 +12,18 @@ export const SignupResponse = z.object({
 });
 export type SignupResponse = z.infer<typeof SignupResponse>;
 
-export const Person = z.object({
-  id: z.string().uuid(),
-  nickname: z.string(),
-  publicNote: z.string().nullable(),
-  createdAt: z.string().datetime(),
-});
-export type Person = z.infer<typeof Person>;
-
+// fullName + medical fields are finder-visible once a linked tag is
+// registered — caps keep each field a short line, not an essay.
 export const PersonCreateRequest = z.object({
   nickname: z.string().min(1).max(80),
   publicNote: z.string().max(200).optional(),
+  fullName: z.string().max(120).optional(),
+  bloodType: z.string().max(20).optional(),
+  medicalConditions: z.string().max(500).optional(),
+  allergies: z.string().max(500).optional(),
+  medications: z.string().max(500).optional(),
+  primaryContactId: z.string().uuid().optional(),
+  secondaryContactId: z.string().uuid().optional(),
 });
 export type PersonCreateRequest = z.infer<typeof PersonCreateRequest>;
 
@@ -36,6 +37,9 @@ export const TagPairRequest = z.object({
   label: z.string().max(80).optional(),
   personName: z.string().max(PERSON_NAME_MAX).optional(),
   personDetails: z.string().max(PERSON_DETAILS_MAX).optional(),
+  // Link a protected person so the finder page shows their structured profile
+  // (full name + medical info). Ownership verified server-side.
+  protectedPersonId: z.string().uuid().optional(),
 });
 export type TagPairRequest = z.infer<typeof TagPairRequest>;
 
@@ -69,6 +73,7 @@ export const Contact = z.object({
   id: z.string().uuid(),
   kind: ContactKind,
   label: z.string().nullable(),
+  relationship: z.string().nullable(),
   value: z.string(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -79,6 +84,7 @@ export const ContactCreateRequest = z
   .object({
     kind: ContactKind,
     label: z.string().max(80).optional(),
+    relationship: z.string().max(80).optional(),
     value: z.string().min(1).max(CONTACT_VALUE_MAX),
   })
   .superRefine((v, ctx) => {
@@ -104,9 +110,34 @@ export type ContactCreateRequest = z.infer<typeof ContactCreateRequest>;
 // verified channel silently move under a different verification regime.
 export const ContactUpdateRequest = z.object({
   label: z.string().max(80).nullable().optional(),
+  relationship: z.string().max(80).nullable().optional(),
   value: z.string().min(1).max(CONTACT_VALUE_MAX).optional(),
 });
 export type ContactUpdateRequest = z.infer<typeof ContactUpdateRequest>;
+
+export const PersonContactRef = z.object({
+  id: z.string().uuid(),
+  kind: ContactKind,
+  label: z.string().nullable(),
+  relationship: z.string().nullable(),
+  value: z.string(),
+});
+export type PersonContactRef = z.infer<typeof PersonContactRef>;
+
+export const Person = z.object({
+  id: z.string().uuid(),
+  nickname: z.string(),
+  publicNote: z.string().nullable(),
+  fullName: z.string().nullable(),
+  bloodType: z.string().nullable(),
+  medicalConditions: z.string().nullable(),
+  allergies: z.string().nullable(),
+  medications: z.string().nullable(),
+  primaryContact: PersonContactRef.nullable(),
+  secondaryContact: PersonContactRef.nullable(),
+  createdAt: z.string().datetime(),
+});
+export type Person = z.infer<typeof Person>;
 
 // A tag the caregiver has registered, as shown in their tag list. Carries a
 // compact snapshot of the linked contact so the list renders without an extra

@@ -164,20 +164,47 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
   r.get("/people", async (c) => {
     const caregiverId = c.get("caregiverId");
     const rows = await opts.db
-      .select({
-        id: protectedPerson.id,
-        nickname: protectedPerson.nickname,
-        publicNote: protectedPerson.publicNote,
-        createdAt: protectedPerson.createdAt,
-      })
+      .select()
       .from(protectedPerson)
       .where(and(eq(protectedPerson.caregiverId, caregiverId), isNull(protectedPerson.deletedAt)))
       .orderBy(sql`${protectedPerson.createdAt} desc`);
+
+    // Embed the emergency contacts in one extra query rather than joining per row.
+    const contactIds = rows.flatMap((p) =>
+      [p.primaryContactId, p.secondaryContactId].filter((x): x is string => x !== null),
+    );
+    const contactRows = contactIds.length
+      ? await opts.db
+          .select()
+          .from(caregiverContact)
+          .where(
+            and(
+              inArray(caregiverContact.id, contactIds),
+              eq(caregiverContact.caregiverId, caregiverId),
+              isNull(caregiverContact.deletedAt),
+            ),
+          )
+      : [];
+    const contactById = new Map(contactRows.map((r) => [r.id, r]));
+    const ref = (id: string | null) => {
+      const row = id ? contactById.get(id) : undefined;
+      return row
+        ? { id: row.id, kind: row.kind, label: row.label, relationship: row.relationship, value: row.value }
+        : null;
+    };
+
     return c.json({
       people: rows.map((p) => ({
         id: p.id,
         nickname: p.nickname,
         publicNote: p.publicNote,
+        fullName: p.fullName,
+        bloodType: p.bloodType,
+        medicalConditions: p.medicalConditions,
+        allergies: p.allergies,
+        medications: p.medications,
+        primaryContact: ref(p.primaryContactId),
+        secondaryContact: ref(p.secondaryContactId),
         createdAt: p.createdAt.toISOString(),
       })),
     });
@@ -186,6 +213,27 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
   r.post("/people", zValidator("json", PersonCreateRequest), async (c) => {
     const caregiverId = c.get("caregiverId");
     const input = c.req.valid("json");
+
+    // Emergency contacts must be the caregiver's own live contacts.
+    const wantedIds = [input.primaryContactId, input.secondaryContactId].filter(
+      (x): x is string => x !== undefined,
+    );
+    if (wantedIds.length > 0) {
+      const owned = await opts.db
+        .select({ id: caregiverContact.id })
+        .from(caregiverContact)
+        .where(
+          and(
+            inArray(caregiverContact.id, wantedIds),
+            eq(caregiverContact.caregiverId, caregiverId),
+            isNull(caregiverContact.deletedAt),
+          ),
+        );
+      if (owned.length !== new Set(wantedIds).size) {
+        return c.json({ error: "contact_not_found" }, 404);
+      }
+    }
+
     const inserted = await opts.db.transaction(async (tx) => {
       const rows = await tx
         .insert(protectedPerson)
@@ -193,6 +241,13 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
           caregiverId,
           nickname: input.nickname,
           publicNote: input.publicNote ?? null,
+          fullName: input.fullName ?? null,
+          bloodType: input.bloodType ?? null,
+          medicalConditions: input.medicalConditions ?? null,
+          allergies: input.allergies ?? null,
+          medications: input.medications ?? null,
+          primaryContactId: input.primaryContactId ?? null,
+          secondaryContactId: input.secondaryContactId ?? null,
         })
         .returning();
       const person = rows[0]!;
@@ -203,15 +258,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
       });
       return person;
     });
-    return c.json(
-      {
-        id: inserted.id,
-        nickname: inserted.nickname,
-        publicNote: inserted.publicNote,
-        createdAt: inserted.createdAt.toISOString(),
-      },
-      201,
-    );
+    return c.json({ id: inserted.id }, 201);
   });
 
   // Pair a tag (inactive | active → registered) to one of the caregiver's
@@ -237,6 +284,23 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
       .limit(1);
     if (!contactRows[0]) return c.json({ error: "contact_not_found" }, 404);
 
+    // Linking a protected person is optional; when present it must be the
+    // caregiver's own live person row.
+    if (input.protectedPersonId !== undefined) {
+      const personRows = await opts.db
+        .select({ id: protectedPerson.id })
+        .from(protectedPerson)
+        .where(
+          and(
+            eq(protectedPerson.id, input.protectedPersonId),
+            eq(protectedPerson.caregiverId, caregiverId),
+            isNull(protectedPerson.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!personRows[0]) return c.json({ error: "person_not_found" }, 404);
+    }
+
     const updated = await opts.db
       .update(tag)
       .set({
@@ -246,6 +310,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         label: input.label ?? null,
         personName: input.personName ?? null,
         personDetails: input.personDetails ?? null,
+        protectedPersonId: input.protectedPersonId ?? null,
       })
       .where(and(eq(tag.code, code), inArray(tag.state, ["inactive", "active"])))
       .returning({
@@ -519,6 +584,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         id: caregiverContact.id,
         kind: caregiverContact.kind,
         label: caregiverContact.label,
+        relationship: caregiverContact.relationship,
         value: caregiverContact.value,
         createdAt: caregiverContact.createdAt,
         updatedAt: caregiverContact.updatedAt,
@@ -536,6 +602,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         id: r.id,
         kind: r.kind,
         label: r.label,
+        relationship: r.relationship,
         value: r.value,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
@@ -553,6 +620,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
           caregiverId,
           kind: input.kind,
           label: input.label ?? null,
+          relationship: input.relationship ?? null,
           value: input.value,
         })
         .returning();
@@ -569,6 +637,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
         id: row.id,
         kind: row.kind,
         label: row.label,
+        relationship: row.relationship,
         value: row.value,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
@@ -581,11 +650,12 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
     const caregiverId = c.get("caregiverId");
     const id = c.req.param("id");
     const input = c.req.valid("json");
-    if (input.label === undefined && input.value === undefined) {
+    if (input.label === undefined && input.value === undefined && input.relationship === undefined) {
       return c.json({ error: "no_changes" }, 400);
     }
     const patch: Record<string, unknown> = { updatedAt: new Date() };
     if (input.label !== undefined) patch.label = input.label;
+    if (input.relationship !== undefined) patch.relationship = input.relationship;
     if (input.value !== undefined) patch.value = input.value;
 
     const updated = await opts.db.transaction(async (tx) => {
@@ -614,6 +684,7 @@ export function caregiverSessionRouter(opts: CaregiverRouterOpts) {
       id: updated.id,
       kind: updated.kind,
       label: updated.label,
+      relationship: updated.relationship,
       value: updated.value,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),

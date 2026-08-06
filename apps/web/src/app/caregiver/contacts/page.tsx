@@ -13,6 +13,7 @@ interface Contact {
   id: string;
   kind: ContactKind;
   label: string | null;
+  relationship: string | null;
   value: string;
   createdAt: string;
   updatedAt: string;
@@ -23,11 +24,12 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [kind, setKind] = useState<ContactKind>("phone");
   const [label, setLabel] = useState("");
+  const [relationship, setRelationship] = useState("");
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // id being edited → its draft state
-  const [editing, setEditing] = useState<{ id: string; label: string; value: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; label: string; relationship: string; value: string } | null>(null);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
 
@@ -56,6 +58,7 @@ export default function ContactsPage() {
       body: JSON.stringify({
         kind,
         label: label.trim() ? label.trim() : undefined,
+        relationship: relationship.trim() ? relationship.trim() : undefined,
         value: value.trim(),
       }),
     });
@@ -65,12 +68,13 @@ export default function ContactsPage() {
       return;
     }
     setLabel("");
+    setRelationship("");
     setValue("");
     load();
   }
 
   function startEdit(c: Contact) {
-    setEditing({ id: c.id, label: c.label ?? "", value: c.value });
+    setEditing({ id: c.id, label: c.label ?? "", relationship: c.relationship ?? "", value: c.value });
     setRowError(null);
   }
 
@@ -84,6 +88,7 @@ export default function ContactsPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         label: editing.label.trim() ? editing.label.trim() : null,
+        relationship: editing.relationship.trim() ? editing.relationship.trim() : null,
         value: editing.value.trim(),
       }),
     });
@@ -150,6 +155,19 @@ export default function ContactsPage() {
               />
             </div>
             <div>
+              <Label htmlFor="contact-relationship">
+                {t("contacts.relationship")}{" "}
+                <span className="font-normal text-slate-400">{t("contacts.relationshipHint")}</span>
+              </Label>
+              <Input
+                id="contact-relationship"
+                type="text"
+                value={relationship}
+                onChange={(e) => setRelationship(e.target.value)}
+                maxLength={80}
+              />
+            </div>
+            <div>
               <Label htmlFor="contact-value">{t("contacts.value")}</Label>
               {kind === "address" ? (
                 <Textarea
@@ -202,6 +220,14 @@ export default function ContactsPage() {
                     />
                     <Input
                       type="text"
+                      value={editing!.relationship}
+                      onChange={(e) => setEditing({ ...editing!, relationship: e.target.value })}
+                      maxLength={80}
+                      aria-label={t("contacts.relationship")}
+                      placeholder={t("contacts.relationship")}
+                    />
+                    <Input
+                      type="text"
                       value={editing!.value}
                       onChange={(e) => setEditing({ ...editing!, value: e.target.value })}
                       maxLength={200}
@@ -227,6 +253,9 @@ export default function ContactsPage() {
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         {t(`contacts.kind${cap(c.kind)}` as never)}
                         {c.label && <span className="ml-2 normal-case text-slate-400">{c.label}</span>}
+                        {c.relationship && (
+                          <span className="ml-2 normal-case text-slate-400">({c.relationship})</span>
+                        )}
                       </p>
                       <p className="mt-0.5 break-words text-sm font-medium text-navy-900">{c.value}</p>
                     </div>

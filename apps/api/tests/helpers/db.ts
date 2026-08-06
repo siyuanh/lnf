@@ -54,8 +54,10 @@ export async function resetCaregiverTables(db: PostgresJsDatabase<Record<string,
   await db.delete(partnerApiKey);
   await db.delete(partnerUser);
   await db.delete(partner);
-  await db.delete(caregiverContact);
+  // protectedPerson FKs to caregiverContact (primary/secondary emergency
+  // contacts) — clear it first or the contact delete violates the FK.
   await db.delete(protectedPerson);
+  await db.delete(caregiverContact);
   await db.delete(caregiver);
   await db.delete(session);
   await db.delete(account);

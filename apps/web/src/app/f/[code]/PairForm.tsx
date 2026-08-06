@@ -15,11 +15,18 @@ interface Contact {
   label: string | null;
   value: string;
 }
+interface PersonOption {
+  id: string;
+  nickname: string;
+  fullName: string | null;
+}
 
 export default function PairForm({ code }: { code: string }) {
   const t = useT();
   const [contacts, setContacts] = useState<Contact[] | null>(null);
+  const [people, setPeople] = useState<PersonOption[]>([]);
   const [contactId, setContactId] = useState("");
+  const [personId, setPersonId] = useState("");
   const [label, setLabel] = useState("");
   const [personName, setPersonName] = useState("");
   const [personDetails, setPersonDetails] = useState("");
@@ -37,6 +44,10 @@ export default function PairForm({ code }: { code: string }) {
         if (list.length > 0) setContactId(list[0]!.id);
       })
       .catch(() => setContacts([]));
+    fetch("/api/caregiver/people", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((data: { people: PersonOption[] }) => setPeople(data.people))
+      .catch(() => setPeople([]));
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -50,8 +61,9 @@ export default function PairForm({ code }: { code: string }) {
       body: JSON.stringify({
         contactId,
         label: label.trim() ? label.trim() : undefined,
-        personName: personName.trim() ? personName.trim() : undefined,
-        personDetails: personDetails.trim() ? personDetails.trim() : undefined,
+        personName: !personId && personName.trim() ? personName.trim() : undefined,
+        personDetails: !personId && personDetails.trim() ? personDetails.trim() : undefined,
+        protectedPersonId: personId || undefined,
       }),
     });
     setSubmitting(false);
@@ -123,32 +135,54 @@ export default function PairForm({ code }: { code: string }) {
               ))}
             </select>
           </div>
-          <div>
-            <Label htmlFor="pair-person-name">
-              {t("pair.personName")}{" "}
-              <span className="font-normal text-slate-400">{t("pair.personNameHint")}</span>
-            </Label>
-            <Input
-              id="pair-person-name"
-              type="text"
-              value={personName}
-              onChange={(e) => setPersonName(e.target.value)}
-              maxLength={80}
-            />
-          </div>
-          <div>
-            <Label htmlFor="pair-person-details">
-              {t("pair.personDetails")}{" "}
-              <span className="font-normal text-slate-400">{t("pair.personDetailsHint")}</span>
-            </Label>
-            <Textarea
-              id="pair-person-details"
-              value={personDetails}
-              onChange={(e) => setPersonDetails(e.target.value)}
-              maxLength={500}
-              rows={3}
-            />
-          </div>
+          {people.length > 0 && (
+            <div>
+              <Label htmlFor="pair-person">{t("pair.personLabel")}</Label>
+              <select
+                id="pair-person"
+                value={personId}
+                onChange={(e) => setPersonId(e.target.value)}
+                className="flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1"
+              >
+                <option value="">{t("pair.personManual")}</option>
+                {people.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.fullName ?? p.nickname}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {!personId && (
+            <>
+              <div>
+                <Label htmlFor="pair-person-name">
+                  {t("pair.personName")}{" "}
+                  <span className="font-normal text-slate-400">{t("pair.personNameHint")}</span>
+                </Label>
+                <Input
+                  id="pair-person-name"
+                  type="text"
+                  value={personName}
+                  onChange={(e) => setPersonName(e.target.value)}
+                  maxLength={80}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pair-person-details">
+                  {t("pair.personDetails")}{" "}
+                  <span className="font-normal text-slate-400">{t("pair.personDetailsHint")}</span>
+                </Label>
+                <Textarea
+                  id="pair-person-details"
+                  value={personDetails}
+                  onChange={(e) => setPersonDetails(e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
           <div>
             <Label htmlFor="pair-label">
               {t("pair.label")}{" "}

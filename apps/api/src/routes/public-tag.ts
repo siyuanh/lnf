@@ -1,10 +1,10 @@
 import { Hono, type Context } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { FindSubmitRequest } from "@app/schemas";
 import type { Db, DbExecutor } from "../db/client.js";
-import { find, tag } from "../db/schema.js";
+import { find, protectedPerson, tag } from "../db/schema.js";
 import { logAuditEvent } from "../audit/log.js";
 import { enqueueJob } from "../notify/enqueue.js";
 
@@ -63,19 +63,34 @@ export function publicTagRouter(opts: PublicTagRouterOpts) {
         state: tag.state,
         personName: tag.personName,
         personDetails: tag.personDetails,
+        personFullName: protectedPerson.fullName,
+        bloodType: protectedPerson.bloodType,
+        medicalConditions: protectedPerson.medicalConditions,
+        allergies: protectedPerson.allergies,
+        medications: protectedPerson.medications,
       })
       .from(tag)
+      .leftJoin(
+        protectedPerson,
+        and(eq(protectedPerson.id, tag.protectedPersonId), isNull(protectedPerson.deletedAt)),
+      )
       .where(eq(tag.code, code))
       .limit(1);
     if (rows.length === 0) return c.json({ error: "not_found" }, 404);
     const row = rows[0]!;
     // Only surface the person's details to finders on a registered tag —
     // that's the reunite path. Never leak them for inactive/active/deprecated.
+    // Contact rows stay server-side: the finder never sees caregiver contact
+    // details; the escalation flow handles contact instead.
     if (row.state === "registered") {
       return c.json({
         state: row.state,
-        personName: row.personName,
+        personName: row.personFullName ?? row.personName,
         personDetails: row.personDetails,
+        bloodType: row.bloodType,
+        medicalConditions: row.medicalConditions,
+        allergies: row.allergies,
+        medications: row.medications,
       });
     }
     return c.json({ state: row.state });
